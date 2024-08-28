@@ -2,3 +2,4 @@ mqtt:
   username: test
   password: test
   wait_time: 3000
+  port: 1234

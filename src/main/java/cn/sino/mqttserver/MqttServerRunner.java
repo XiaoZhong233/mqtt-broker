@@ -14,6 +14,7 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,9 @@ public class MqttServerRunner implements CommandLineRunner {
 
     @Autowired
     ServerMqttHandler serverMqttHandler;
+
+    @Value("${mqtt.port}")
+    private Integer port;
 
     @Override
     public void run(String... args) throws Exception {
@@ -48,7 +52,7 @@ public class MqttServerRunner implements CommandLineRunner {
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
 
             // Bind and start to accept incoming connections.
-            b.bind(1234).sync().channel().closeFuture().sync();
+            b.bind(port).sync().channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
