@@ -42,9 +42,7 @@ public class ServerMqttHandler extends SimpleChannelInboundHandler<MqttMessage> 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, MqttMessage mqttMessage) throws Exception {
         if(mqttMessage!=null){
-            log.info("接受到mqtt消息: {}", mqttMessage);
             MqttFixedHeader mqttFixedHeader = mqttMessage.fixedHeader();
-
             switch (mqttFixedHeader.messageType()){
                 // ----------------------接收消息端（服务端）可能会触发的事件----------------------------------------------------------------
                 case CONNECT:
