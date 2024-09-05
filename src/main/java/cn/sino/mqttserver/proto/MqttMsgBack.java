@@ -58,11 +58,13 @@ public class MqttMsgBack {
 
     /**
      * 功能描述:存放主题和其订阅的客户端集合
+     * key: topicName, value: clientId集合
      */
-    public static final ConcurrentHashMap<String, HashSet<String>> subMap = new ConcurrentHashMap<String, HashSet<String>>();
+    public static final TopicConcurrentHashMap subMap = new TopicConcurrentHashMap();
 
     /**
      * 功能描述:存放订阅是的服务质量等级，只有发送小于或等于这个服务质量的消息给订阅者
+     * key: {topicName}-{clientId}, value: 服务质量等级QoS
      */
     public static final ConcurrentHashMap<String, MqttQoS> qoSMap = new ConcurrentHashMap<String, MqttQoS>();
 
@@ -154,8 +156,21 @@ public class MqttMsgBack {
         if (set != null) {
             for (String channelId : set) {
                 ChannelHandlerContext context = ServerMqttHandler.clientMap.get(channelId);
+                //检查连接的可用性
                 if (context != null && context.channel().isActive()) {
                     MqttQoS cacheQos = qoSMap.get(topicName + "-" + channelId);
+                    if(cacheQos==null){
+                        Set<String> matchWildcardsTopic = subMap.getMatchWildcardsTopic(channelId, topicName);
+                        if(CollUtil.isNotEmpty(matchWildcardsTopic)){
+                            for (String matchTopic : matchWildcardsTopic){
+                                MqttQoS qosLevel = qoSMap.get(matchTopic + "-" + channelId);
+                                if(qosLevel!=null){
+                                    cacheQos = qosLevel;
+                                    break;
+                                }
+                            }
+                        }
+                    }
                     if (cacheQos != null && qos.value() <= cacheQos.value()) {
                         // retainedDuplicate()增加引用计数器，不至于后续操作byteBuf出现错误，引用计数器为0的情况，这里会清除retainedDuplicate的操作有：
                         // SimpleChannelInboundHandler处理器、编码器 MqttEncoder、和最后确认的时候释放，所以每次操作消息之前，先进行一次retainedDuplicate
