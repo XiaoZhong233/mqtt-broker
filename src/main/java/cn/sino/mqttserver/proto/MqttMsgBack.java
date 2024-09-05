@@ -74,7 +74,7 @@ public class MqttMsgBack {
     public static final ConcurrentHashMap<String, Set<String>> ctMap = new ConcurrentHashMap<String, Set<String>>();
 
     /**
-     * 功能描述:存放需要缓存的消息，一边发送给新订阅的客户端
+     * 功能描述:存放需要缓存的消息，一边发送给新订阅的客户端，用于支持MQTT的Retain保留消息特性
      */
     public static final ConcurrentHashMap<String, MqttPublishMessage> cacheRetainedMessages = new ConcurrentHashMap<String, MqttPublishMessage>();
 
@@ -162,11 +162,12 @@ public class MqttMsgBack {
                     if(cacheQos==null){
                         Set<String> matchWildcardsTopic = subMap.getMatchWildcardsTopic(channelId, topicName);
                         if(CollUtil.isNotEmpty(matchWildcardsTopic)){
+                            int MqttQoSMax = -1;
                             for (String matchTopic : matchWildcardsTopic){
                                 MqttQoS qosLevel = qoSMap.get(matchTopic + "-" + channelId);
-                                if(qosLevel!=null){
+                                if(qosLevel!=null && qosLevel.value() > MqttQoSMax){
+                                    MqttQoSMax = qosLevel.value();
                                     cacheQos = qosLevel;
-                                    break;
                                 }
                             }
                         }

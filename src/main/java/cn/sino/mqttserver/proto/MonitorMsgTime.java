@@ -41,7 +41,7 @@ public class MonitorMsgTime implements Runnable {
                     byteBuf.retainedDuplicate();
                     ctx.writeAndFlush(mqttPublishMessage);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    log.error("重复发送消息给客户端失败：" + address.getHostString(), e);
                     throw e;
                 }
             } else {
