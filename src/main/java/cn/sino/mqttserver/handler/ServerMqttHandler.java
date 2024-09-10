@@ -77,6 +77,8 @@ public class ServerMqttHandler extends SimpleChannelInboundHandler<MqttMessage> 
                 case DISCONNECT:
                     //	客户端主动断开连接
                     //	DISCONNECT报文是客户端发给服务端的最后一个控制报文， 服务端必须验证所有的保留位都被设置为0
+                    log.info("设备断开连接： {}", ctx.channel().remoteAddress());
+                    mqttMsgBack.handleDisconnect(ctx);
                     break;
                 // ----------------------服务端作为发送消息端可能会接收的事件----------------------------------------------------------------
                 case PUBACK:
