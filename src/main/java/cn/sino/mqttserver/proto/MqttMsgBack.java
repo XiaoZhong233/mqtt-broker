@@ -69,29 +69,29 @@ public class MqttMsgBack {
     SessionStore sessionStore;
 
     /**
-     * 功能描述:存放主题和其订阅的客户端集合
+     * 存放主题和其订阅的客户端集合
      * key: topicName, value: clientId集合
      */
     public static final TopicConcurrentHashMap subMap = new TopicConcurrentHashMap();
 
     /**
-     * 功能描述:存放订阅是的服务质量等级，只有发送小于或等于这个服务质量的消息给订阅者
+     * 存放订阅是的服务质量等级，只有发送小于或等于这个服务质量的消息给订阅者
      * key: {topicName}-{clientId}, value: 服务质量等级QoS
      */
     public static final ConcurrentHashMap<String, MqttQoS> qoSMap = new ConcurrentHashMap<String, MqttQoS>();
 
     /**
-     * 功能描述:存放客户端和其所订阅的主题集合，用来在客户端断开的时候删除订阅中的客户端
+     * 存放客户端和其所订阅的主题集合，用来在客户端断开的时候删除订阅中的客户端
      */
     public static final ConcurrentHashMap<String, Set<String>> ctMap = new ConcurrentHashMap<String, Set<String>>();
 
     /**
-     * 功能描述:存放需要缓存的消息，一边发送给新订阅的客户端，用于支持MQTT的Retain保留消息特性
+     * 存放需要缓存的消息，一边发送给新订阅的客户端，用于支持MQTT的Retain保留消息特性
      */
     public static final ConcurrentHashMap<String, MqttPublishMessage> cacheRetainedMessages = new ConcurrentHashMap<String, MqttPublishMessage>();
 
     /**
-     * 功能描述:缓存需要重复发送的消息，以便在收到ack的时候将消息内存释放掉
+     * 缓存需要重复发送的消息，以便在收到ack的时候将消息内存释放掉
      */
     public static final ConcurrentHashMap<String, ByteBuf> cacheRepeatMessages = new ConcurrentHashMap<String, ByteBuf>();
 
@@ -246,8 +246,6 @@ public class MqttMsgBack {
                                     session.addQueuedMessage(mqttMessage);
                                     sessionStore.saveSession(session.getClientId(), session);
                                 }
-                            }else {
-                                log.info("Topic:{},To {} 发送消息成功：{}", topicName, channelId, mqttPublishMessage.payload().toString());
                             }
                         });
                         if (qos == AT_LEAST_ONCE || qos == EXACTLY_ONCE) {
