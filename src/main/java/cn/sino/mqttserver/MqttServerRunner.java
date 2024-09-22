@@ -1,5 +1,7 @@
 package cn.sino.mqttserver;
 
+import cn.sino.mqttserver.config.Cert;
+import cn.sino.mqttserver.handler.IdleReadStateHandler;
 import cn.sino.mqttserver.handler.ServerMqttHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
@@ -12,12 +14,23 @@ import io.netty.handler.codec.mqtt.MqttDecoder;
 import io.netty.handler.codec.mqtt.MqttEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.timeout.IdleStateHandler;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Order(1)
@@ -27,9 +40,21 @@ public class MqttServerRunner implements CommandLineRunner {
 
     @Autowired
     ServerMqttHandler serverMqttHandler;
+    @Autowired
+    IdleReadStateHandler idleReadStateHandler;
+
+    private SslContext sslContext;
+
 
     @Value("${mqtt.port}")
     private Integer port;
+
+
+    @PostConstruct
+    public void init() throws IOException {
+        // Single way authentication
+        sslContext = Cert.build();
+    }
 
     @Override
     public void run(String... args) throws Exception {
@@ -43,9 +68,12 @@ public class MqttServerRunner implements CommandLineRunner {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel ch) {
+                            ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
                             ch.pipeline().addLast("mqttDecoder", new MqttDecoder(8192));
                             ch.pipeline().addLast("mqttEncoder", MqttEncoder.INSTANCE);
                             ch.pipeline().addLast("mqttHandler", serverMqttHandler);
+                            ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(2,0,0, TimeUnit.MINUTES))
+                                    .addLast(idleReadStateHandler);
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)

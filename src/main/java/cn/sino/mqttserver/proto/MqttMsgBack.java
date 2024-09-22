@@ -96,6 +96,7 @@ public class MqttMsgBack {
     public static final ConcurrentHashMap<String, ByteBuf> cacheRepeatMessages = new ConcurrentHashMap<String, ByteBuf>();
 
     public void handleDisconnect(ChannelHandlerContext ctx) {
+        log.info("设备断开连接1： {}", ctx.channel().remoteAddress());
         AttributeKey<MqttSession> key = AttributeKey.valueOf(Constants.MQTT_SESSION_KEY);
         MqttSession session = ctx.channel().attr(key).get();
         if (session != null) {

@@ -2,8 +2,9 @@ mqtt:
   username: test
   password: test
   wait_time: 3000
-  port: 1234
+  port: 1883
   enable_clean_session: false
+  enable_ssl: false
 spring:
   profiles:
     active: dev
