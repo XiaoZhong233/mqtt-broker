@@ -45,6 +45,9 @@ public class MqttServerRunner implements CommandLineRunner {
 
     private SslContext sslContext;
 
+    @Value("${mqtt.enable_ssl}")
+    private Boolean sslEnabled;
+
 
     @Value("${mqtt.port}")
     private Integer port;
@@ -68,12 +71,14 @@ public class MqttServerRunner implements CommandLineRunner {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel ch) {
-                            ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
+                            if (sslEnabled) {
+                                ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
+                            }
+                            ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(2,0,0, TimeUnit.MINUTES))
+                                    .addLast(idleReadStateHandler);
                             ch.pipeline().addLast("mqttDecoder", new MqttDecoder(8192));
                             ch.pipeline().addLast("mqttEncoder", MqttEncoder.INSTANCE);
                             ch.pipeline().addLast("mqttHandler", serverMqttHandler);
-                            ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(2,0,0, TimeUnit.MINUTES))
-                                    .addLast(idleReadStateHandler);
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)

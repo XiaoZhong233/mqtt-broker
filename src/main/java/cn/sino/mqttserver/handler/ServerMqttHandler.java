@@ -2,6 +2,9 @@ package cn.sino.mqttserver.handler;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.sino.mqttserver.proto.MqttMsgBack;
+import cn.sino.service.DeviceChannelService;
+import cn.sino.service.impl.DeviceChannelServiceImpl;
+import cn.sino.service.impl.MqttLoggerService;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -22,20 +25,24 @@ import java.util.concurrent.ConcurrentHashMap;
 @ChannelHandler.Sharable
 public class ServerMqttHandler extends SimpleChannelInboundHandler<MqttMessage> {
 
-    public static final ConcurrentHashMap<String, ChannelHandlerContext> clientMap = new ConcurrentHashMap<String, ChannelHandlerContext>();
+    public static final ConcurrentHashMap<String, ChannelHandlerContext> clientMap = new ConcurrentHashMap<>();
 
 //    @Value("${driver.mqtt.address_list}")
 //    private List<String> addressList;
 
     @Autowired
     private MqttMsgBack mqttMsgBack;
+    @Autowired
+    DeviceChannelService deviceChannelService;
+    @Autowired
+    MqttLoggerService loggerService;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         InetSocketAddress address = (InetSocketAddress) ctx.channel().remoteAddress();
         //判断连接是否合法
         clientMap.put(ctx.channel().id().toString(), ctx);
-        log.info("设备连接： {}", address.getAddress());
+//        log.info("设备连接： {}", address.getAddress());
         super.handlerAdded(ctx);
     }
 
@@ -106,7 +113,8 @@ public class ServerMqttHandler extends SimpleChannelInboundHandler<MqttMessage> 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         delSubCache(ctx);
-
+        loggerService.logInactive(ctx.channel().id().toString());
+        deviceChannelService.removeChannelChannelId(ctx.channel().id().toString());
         super.channelInactive(ctx);
     }
 

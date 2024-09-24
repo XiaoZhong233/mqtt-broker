@@ -5,8 +5,12 @@ import cn.sino.mqttserver.Constants;
 import cn.sino.mqttserver.handler.ServerMqttHandler;
 import cn.sino.mqttserver.proto.session.MqttSession;
 import cn.sino.mqttserver.proto.session.SessionStore;
+import cn.sino.service.DeviceChannelService;
+import cn.sino.service.impl.MqttLoggerService;
+import cn.sino.utils.JsonFlattener;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.*;
 import io.netty.util.AttributeKey;
@@ -65,8 +69,17 @@ public class MqttMsgBack {
     @Value("${mqtt.enable_clean_session}")
     private boolean enableCleanSession;
 
+    @Value("${mqtt.enable_ssl}")
+    private Boolean sslEnabled;
+
+    @Autowired
+    DeviceChannelService deviceChannelService;
+
     @Autowired
     SessionStore sessionStore;
+
+    @Autowired
+    MqttLoggerService loggerService;
 
     /**
      * 存放主题和其订阅的客户端集合
@@ -96,7 +109,7 @@ public class MqttMsgBack {
     public static final ConcurrentHashMap<String, ByteBuf> cacheRepeatMessages = new ConcurrentHashMap<String, ByteBuf>();
 
     public void handleDisconnect(ChannelHandlerContext ctx) {
-        log.info("设备断开连接1： {}", ctx.channel().remoteAddress());
+        loggerService.info("{}设备主动断开连接", deviceChannelService.getSnByChannelId(ctx.channel().id().toString()));
         AttributeKey<MqttSession> key = AttributeKey.valueOf(Constants.MQTT_SESSION_KEY);
         MqttSession session = ctx.channel().attr(key).get();
         if (session != null) {
@@ -115,10 +128,15 @@ public class MqttMsgBack {
         MqttSession session = sessionStore.getSession(ctx.channel().id().asShortText());
         if (session != null) {
             // 如果有未发送的 QoS 消息，重新发送
-            for (MqttMessage message : session.getQueuedMessages()) {
-                publishAck(ctx, message);
+            session.setLock(true);
+            while (!session.getQueuedMessages().isEmpty()){
+                MqttMessage mqttMessage = session.popQueuedMessage();
+                publishAck(ctx, mqttMessage);
             }
-            session.clear();
+            session.setLock(false);
+            if(session.getQueuedMessages().isEmpty()){
+                session.clear();
+            }
         }
     }
 
@@ -139,7 +157,7 @@ public class MqttMsgBack {
             //查询用户名密码是否正确
             String userNameNow = mqttConnectMessage.payload().userName();
             String passwordNow = mqttConnectMessage.payload().password();
-            if (userName.equals(userNameNow) && password.equals(passwordNow)) {
+            if (sslEnabled || (userName.equals(userNameNow) && password.equals(passwordNow))) {
                 MqttFixedHeader mqttFixedHeaderInfo = mqttConnectMessage.fixedHeader();
                 MqttConnectVariableHeader mqttConnectVariableHeaderInfo = mqttConnectMessage.variableHeader();
                 //构建返回报文， 可变报头
@@ -151,7 +169,9 @@ public class MqttMsgBack {
                 ctx.writeAndFlush(connAck);
                 //设置节点名
                 InetSocketAddress address = (InetSocketAddress) ctx.channel().remoteAddress();
-                log.info("终端登录成功,ID号:{},IP信息:{},终端号:{}", clientIdentifier, address.getHostString(), address.getPort());
+//                loggerService.info("终端登录成功,ID号:{},IP信息:{},终端号:{}", clientIdentifier, address.getHostString(), address.getPort());
+                deviceChannelService.referenceChannelIdAndSn(ctx.channel().id().toString(), clientIdentifier);
+                loggerService.logActive(clientIdentifier, address.getHostString());
                 //检查会话
                 if(enableCleanSession){
                     boolean cleanSession = mqttConnectMessage.variableHeader().isCleanSession();
@@ -165,7 +185,7 @@ public class MqttMsgBack {
                             session = new MqttSession(clientIdentifier, false);
                             sessionStore.saveSession(clientIdentifier, session);
                         }else {
-                            log.info("恢复会话成功：{}", clientIdentifier);
+                            loggerService.info("设备{}恢复会话成功", clientIdentifier);
                             handleRetainSessionClientReconnect(ctx);
                         }
                     }
@@ -213,7 +233,7 @@ public class MqttMsgBack {
         //将消息发送给订阅的客户端
         ByteBuf byteBuf = mqttPublishMessage.payload();
         HashSet<String> set = subMap.get(topicName);
-        if (set != null) {
+        if (set != null && !set.isEmpty()) {
             for (String channelId : set) {
                 ChannelHandlerContext context = ServerMqttHandler.clientMap.get(channelId);
                 //检查连接的可用性
@@ -236,17 +256,13 @@ public class MqttMsgBack {
                     if (cacheQos != null && qos.value() <= cacheQos.value()) {
                         // retainedDuplicate()增加引用计数器，不至于后续操作byteBuf出现错误，引用计数器为0的情况，这里会清除retainedDuplicate的操作有：
                         // SimpleChannelInboundHandler处理器、编码器 MqttEncoder、和最后确认的时候释放，所以每次操作消息之前，先进行一次retainedDuplicate
-                        byteBuf.retainedDuplicate();
+                        byteBuf.retain();
                         ChannelFuture channelFuture = context.writeAndFlush(mqttPublishMessage);
                         channelFuture.addListener(future -> {
                             if (!future.isSuccess()) {
                                 log.error("Topic:{},To {} 发送消息失败：", topicName, channelId);
-                                AttributeKey<MqttSession> key = AttributeKey.valueOf(Constants.MQTT_SESSION_KEY);
-                                MqttSession session = ctx.channel().attr(key).get();
-                                if (session != null) {
-                                    session.addQueuedMessage(mqttMessage);
-                                    sessionStore.saveSession(session.getClientId(), session);
-                                }
+                            }else {
+                                loggerService.logSendSuccess(ctx.channel().id().toString(), channelId, mqttPublishMessage);
                             }
                         });
                         if (qos == AT_LEAST_ONCE || qos == EXACTLY_ONCE) {
@@ -258,11 +274,20 @@ public class MqttMsgBack {
                             cacheRepeatMessages.put(channelId, byteBuf);
                             cachePublishMsg(qos, byteBuf, variableHeader, mqttFixedHeaderInfo, context);
                         }
+                    }else {
+                        loggerService.logSendFailed(ctx.channel().id().toString(), channelId,
+                                "消息QoS等级大于Topic Qos",mqttPublishMessage);
                     }
                 } else {
                     if (context != null) {
                         InetSocketAddress address = (InetSocketAddress) ctx.channel().remoteAddress();
                         log.error(address.getHostString() + "转发订阅消息提醒：客户端连接异常~");
+                        AttributeKey<MqttSession> key = AttributeKey.valueOf(Constants.MQTT_SESSION_KEY);
+                        MqttSession session = ctx.channel().attr(key).get();
+                        if (session != null) {
+                            session.addQueuedMessage(mqttMessage);
+                            sessionStore.saveSession(session.getClientId(), session);
+                        }
                     }
                     //防止客户端频繁上下线导致id变化，带来不必要的空指针
                     ServerMqttHandler.clientMap.remove(channelId);
@@ -270,23 +295,22 @@ public class MqttMsgBack {
                     Set<String> topicSet = ctMap.get(channelId);
                     if (CollUtil.isNotEmpty(topicSet)) {
                         for (String topic : topicSet) {
-                            if (subMap != null) {
-                                HashSet<String> ids = subMap.get(topic);
-                                if (CollUtil.isNotEmpty(ids)) {
-                                    ids.remove(channelId);
-                                    if (CollUtil.isEmpty(ids)) {
-                                        subMap.remove(topic);
-                                    }
+                            HashSet<String> ids = subMap.get(topic);
+                            if (CollUtil.isNotEmpty(ids)) {
+                                ids.remove(channelId);
+                                if (CollUtil.isEmpty(ids)) {
+                                    subMap.remove(topic);
                                 }
                             }
-                            if (qoSMap != null) {
-                                qoSMap.remove(topic + "-" + channelId);
-                            }
+                            qoSMap.remove(topic + "-" + channelId);
                         }
                     }
                     ctMap.remove(channelId);
                 }
             }
+        }else {
+            loggerService.logSendFailed(ctx.channel().id().toString(), "null", "没有客户端订阅该Topic",mqttPublishMessage);
+
         }
         // 缓存消息给后订阅的客户端
         boolean retain = mqttFixedHeaderInfo.isRetain();
@@ -372,13 +396,10 @@ public class MqttMsgBack {
         MqttMessageIdVariableHeader variableHeaderBack = MqttMessageIdVariableHeader.from(messageIdVariableHeader.messageId());
         MqttSubscribePayload subscribePayload = mqttSubscribeMessage.payload();
         List<MqttTopicSubscription> mqttTopicSubscriptions = subscribePayload.topicSubscriptions();
-        List<Integer> grantedQoSLevels = new ArrayList<Integer>();
+        List<Integer> grantedQoSLevels = new ArrayList<>();
         String id = ctx.channel().id().toString();
         //存储客户端订阅的主题集合，断开或者异常连接时，删除订阅ctMap和subMap里的值
-        Set<String> topicSet = ctMap.get(id);
-        if (topicSet == null) {
-            topicSet = new HashSet<String>();
-        }
+        Set<String> topicSet = ctMap.getOrDefault(id, new HashSet<>());
         for (MqttTopicSubscription subscription : mqttTopicSubscriptions) {
             String topicName = subscription.topicFilter();
             HashSet<String> contexts = subMap.get(topicName);
@@ -395,23 +416,23 @@ public class MqttMsgBack {
                 subMap.put(topicName, contexts);
                 //存储客户端订阅的主题集合
                 topicSet.add(topicName);
-                AttributeKey<MqttSession> key = AttributeKey.valueOf(Constants.MQTT_SESSION_KEY);
-                MqttSession session = ctx.channel().attr(key).get();
-                if (session != null) {
-                    session.addSubscription(topicName, new Subscription(topicName, qos.value()));
-                }
             }
             //存储客户端订阅的主题集合
             int value = subscription.qualityOfService().value();
             grantedQoSLevels.add(value);
         }
+        ctMap.put(id, topicSet);
         //	构建返回报文	有效负载
         MqttSubAckPayload payloadBack = new MqttSubAckPayload(grantedQoSLevels);
         //	构建返回报文	固定报头
         MqttFixedHeader mqttFixedHeaderBack = new MqttFixedHeader(MqttMessageType.SUBACK, false, AT_MOST_ONCE, false, 0);
         //	构建返回报文	订阅确认
         MqttSubAckMessage subAck = new MqttSubAckMessage(mqttFixedHeaderBack, variableHeaderBack, payloadBack);
-        ctx.writeAndFlush(subAck);
+        ctx.writeAndFlush(subAck).addListener((ChannelFutureListener) channelFuture -> {
+            if(channelFuture.isSuccess()){
+                loggerService.logSubSuccess(id, mqttSubscribeMessage);
+            }
+        });
         //查看订阅的主题是否需要需要发送消息, 支持retain特性
         for (String topic : topicSet) {
             MqttQoS cacheQos = qoSMap.get(topic + "-" + id);
@@ -454,7 +475,7 @@ public class MqttMsgBack {
         MqttFixedHeader mqttFixedHeaderBack = new MqttFixedHeader(MqttMessageType.UNSUBACK, false, AT_MOST_ONCE, false, 0x02);
         //	构建返回报文	取消订阅确认
         MqttUnsubAckMessage unSubAck = new MqttUnsubAckMessage(mqttFixedHeaderBack, variableHeaderBack);
-        log.info("取消订阅回复:{}", unSubAck);
+//        log.info("取消订阅回复:{}", unSubAck);
         //删除本地订阅客户端
         String id = ctx.channel().id().toString();
         List<String> topics = mqttUnsubscribeMessage.payload().topics();
@@ -476,12 +497,8 @@ public class MqttMsgBack {
             if (CollUtil.isNotEmpty(topicSet)) {
                 topicSet.remove(topic);
             }
-            AttributeKey<MqttSession> key = AttributeKey.valueOf(Constants.MQTT_SESSION_KEY);
-            MqttSession session = ctx.channel().attr(key).get();
-            if(session != null){
-                session.removeSubscription(topic);
-            }
         }
+        loggerService.logUnsubSuccess(id, mqttUnsubscribeMessage);
         ctx.writeAndFlush(unSubAck);
     }
 
