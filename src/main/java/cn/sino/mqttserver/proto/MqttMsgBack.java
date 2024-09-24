@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -233,6 +234,7 @@ public class MqttMsgBack {
         //将消息发送给订阅的客户端
         ByteBuf byteBuf = mqttPublishMessage.payload();
         HashSet<String> set = subMap.get(topicName);
+        String msg = mqttPublishMessage.payload().toString(StandardCharsets.UTF_8);
         if (set != null && !set.isEmpty()) {
             for (String channelId : set) {
                 ChannelHandlerContext context = ServerMqttHandler.clientMap.get(channelId);
@@ -262,7 +264,7 @@ public class MqttMsgBack {
                             if (!future.isSuccess()) {
                                 log.error("Topic:{},To {} 发送消息失败：", topicName, channelId);
                             }else {
-                                loggerService.logSendSuccess(ctx.channel().id().toString(), channelId, mqttPublishMessage);
+                                loggerService.logSendSuccess(ctx.channel().id().toString(), channelId, qos.value(), topicName, msg);
                             }
                         });
                         if (qos == AT_LEAST_ONCE || qos == EXACTLY_ONCE) {
@@ -276,7 +278,7 @@ public class MqttMsgBack {
                         }
                     }else {
                         loggerService.logSendFailed(ctx.channel().id().toString(), channelId,
-                                "消息QoS等级大于Topic Qos",mqttPublishMessage);
+                                "消息QoS等级大于Topic Qos",qos.value(), topicName, msg);
                     }
                 } else {
                     if (context != null) {
@@ -309,7 +311,7 @@ public class MqttMsgBack {
                 }
             }
         }else {
-            loggerService.logSendFailed(ctx.channel().id().toString(), "null", "没有客户端订阅该Topic",mqttPublishMessage);
+            loggerService.logSendFailed(ctx.channel().id().toString(), "null", "没有客户端订阅该Topic",qos.value(), topicName, msg);
 
         }
         // 缓存消息给后订阅的客户端
@@ -430,7 +432,7 @@ public class MqttMsgBack {
         MqttSubAckMessage subAck = new MqttSubAckMessage(mqttFixedHeaderBack, variableHeaderBack, payloadBack);
         ctx.writeAndFlush(subAck).addListener((ChannelFutureListener) channelFuture -> {
             if(channelFuture.isSuccess()){
-                loggerService.logSubSuccess(id, mqttSubscribeMessage);
+                loggerService.logSubSuccess(id, mqttTopicSubscriptions);
             }
         });
         //查看订阅的主题是否需要需要发送消息, 支持retain特性
@@ -498,7 +500,7 @@ public class MqttMsgBack {
                 topicSet.remove(topic);
             }
         }
-        loggerService.logUnsubSuccess(id, mqttUnsubscribeMessage);
+        loggerService.logUnsubSuccess(id, topics);
         ctx.writeAndFlush(unSubAck);
     }
 

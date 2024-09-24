@@ -31,21 +31,19 @@ public class MqttLoggerService {
         mqttLogger.info("[Logout]-(sn:{})", deviceChannelService.getSnByChannelId(from));
     }
 
-    public void logSendSuccess(String from, String to, MqttPublishMessage mqttPublishMessage){
+    public void logSendSuccess(String from, String to, int qos, String topic, String msg){
         String format = String.format("[Send Success]-(from: %s, to: %s). [Payload]-(%s)",
-                deviceChannelService.getSnByChannelId(from), to, formatMqttMsg(mqttPublishMessage));
+                deviceChannelService.getSnByChannelId(from), to, formatMqttMsg(qos, topic, msg));
         mqttLogger.info(format);
     }
 
-    public void logSendFailed(String from, String to, String reason, MqttPublishMessage mqttPublishMessage){
+    public void logSendFailed(String from, String to, String reason, int qos, String topic, String msg){
         String format = String.format("[Send Failed]-(from: %s, to: %s, reason:%s). [Payload]-(%s)",
-                deviceChannelService.getSnByChannelId(from), to,reason, formatMqttMsg(mqttPublishMessage));
+                deviceChannelService.getSnByChannelId(from), to,reason, formatMqttMsg(qos, topic, msg));
         mqttLogger.error(format);
     }
 
-    public void logSubSuccess(String from, MqttSubscribeMessage mqttSubscribeMessage){
-        MqttSubscribePayload subscribePayload = mqttSubscribeMessage.payload();
-        List<MqttTopicSubscription> mqttTopicSubscriptions = subscribePayload.topicSubscriptions();
+    public void logSubSuccess(String from, List<MqttTopicSubscription> mqttTopicSubscriptions){
         for (MqttTopicSubscription subscription : mqttTopicSubscriptions){
             String topic = subscription.topicFilter();
             String format = String.format("[Sub success]-(from: %s, topic: %s, qos: %s). ", deviceChannelService.getSnByChannelId(from),
@@ -54,9 +52,7 @@ public class MqttLoggerService {
         }
     }
 
-    public void logUnsubSuccess(String from, MqttUnsubscribeMessage mqttUnsubscribeMessage){
-        val payload = mqttUnsubscribeMessage.payload();
-        List<String> topics = payload.topics();
+    public void logUnsubSuccess(String from, List<String> topics){
         for (String topic: topics){
             String format = String.format("[Unsub success]-(from: %s, topic: %s). ", deviceChannelService.getSnByChannelId(from),
                     topic);
@@ -64,11 +60,15 @@ public class MqttLoggerService {
         }
     }
 
-    private String formatMqttMsg(MqttPublishMessage mqttPublishMessage){
-        MqttFixedHeader mqttFixedHeaderInfo = mqttPublishMessage.fixedHeader();
-        MqttQoS qos = mqttFixedHeaderInfo.qosLevel();
-        MqttPublishVariableHeader variableHeader = mqttPublishMessage.variableHeader();
-        String topicName = variableHeader.topicName();
-        return String.format("[Qos]: %s, [Topic]: %s, [Msg]: (%s)", qos.value(), topicName, JsonFlattener.flattenJson(mqttPublishMessage));
+//    private String formatMqttMsg(MqttPublishMessage mqttPublishMessage){
+//        MqttFixedHeader mqttFixedHeaderInfo = mqttPublishMessage.fixedHeader();
+//        MqttQoS qos = mqttFixedHeaderInfo.qosLevel();
+//        MqttPublishVariableHeader variableHeader = mqttPublishMessage.variableHeader();
+//        String topicName = variableHeader.topicName();
+//        return String.format("[Qos]: %s, [Topic]: %s, [Msg]: (%s)", qos.value(), topicName, JsonFlattener.flattenJson(mqttPublishMessage));
+//    }
+
+    private String formatMqttMsg(int qos, String topic, String msg){
+        return String.format("[Qos]: %s, [Topic]: %s, [Msg]: (%s)", qos, topic, msg);
     }
 }
