@@ -261,7 +261,7 @@ public class MqttMsgBack {
                     if (cacheQos != null && qos.value() <= cacheQos.value()) {
                         // retainedDuplicate()增加引用计数器，不至于后续操作byteBuf出现错误，引用计数器为0的情况，这里会清除retainedDuplicate的操作有：
                         // SimpleChannelInboundHandler处理器、编码器 MqttEncoder、和最后确认的时候释放，所以每次操作消息之前，先进行一次retainedDuplicate
-                        byteBuf.retain();
+                        byteBuf.retainedDuplicate();
                         ChannelFuture channelFuture = context.writeAndFlush(mqttPublishMessage);
                         channelFuture.addListener(future -> {
                             if (!future.isSuccess()) {
@@ -399,8 +399,6 @@ public class MqttMsgBack {
                 if (scheduledFuture != null) {
                     log.info("[{}]移除定时PUBREL任务成功", messageId);
                     scheduledFuture.cancel(true);
-                }else {
-                    log.error("[{}]移除定时PUBREL任务失败", messageId);
                 }
             }
         });
@@ -561,9 +559,6 @@ public class MqttMsgBack {
             if (scheduledFuture != null) {
                 scheduledFuture.cancel(true);
                 log.info("[{}]移除PUBACK定时任务成功", messageId);
-            }else {
-                log.info("[{}]移除PUBACK定时任务失败", messageId);
-
             }
             //移除消息记录
             ByteBuf byteBuf = cacheRepeatMessages.remove(ctx.channel().id().toString());
@@ -589,8 +584,6 @@ public class MqttMsgBack {
             if (scheduledFuture != null) {
                 log.info("[{}]移除PUBREC定时任务成功", messageId);
                 scheduledFuture.cancel(true);
-            }else {
-                log.error("[{}]移除PUBREC定时任务失败", messageId);
             }
             //释放消息缓存
             ByteBuf byteBuf = cacheRepeatMessages.remove(ctx.channel().id().toString());

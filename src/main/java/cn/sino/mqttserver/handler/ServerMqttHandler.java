@@ -5,6 +5,7 @@ import cn.sino.mqttserver.proto.MqttMsgBack;
 import cn.sino.service.DeviceChannelService;
 import cn.sino.service.impl.DeviceChannelServiceImpl;
 import cn.sino.service.impl.MqttLoggerService;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -19,6 +20,8 @@ import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static cn.sino.mqttserver.proto.MqttMsgBack.cacheRepeatMessages;
 
 @Slf4j
 @Component
@@ -106,7 +109,7 @@ public class ServerMqttHandler extends SimpleChannelInboundHandler<MqttMessage> 
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        cause.printStackTrace();
+        log.error("exception caught: ",cause);
         super.exceptionCaught(ctx, cause);
     }
 
