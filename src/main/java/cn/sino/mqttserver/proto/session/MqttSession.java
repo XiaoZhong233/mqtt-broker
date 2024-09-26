@@ -1,6 +1,6 @@
 package cn.sino.mqttserver.proto.session;
 
-import cn.sino.mqttserver.proto.Subscription;
+
 import io.netty.handler.codec.mqtt.MqttMessage;
 import lombok.Data;
 

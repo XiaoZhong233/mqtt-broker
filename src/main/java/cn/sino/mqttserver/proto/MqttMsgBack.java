@@ -67,6 +67,9 @@ public class MqttMsgBack {
     @Value("${mqtt.wait_time}")
     private long waitTime;
 
+    @Value("${mqtt.interval}")
+    private long intervalTime;
+
     @Value("${mqtt.enable_clean_session}")
     private boolean enableCleanSession;
 
@@ -264,7 +267,7 @@ public class MqttMsgBack {
                             if (!future.isSuccess()) {
                                 log.error("Topic:{},To {} 发送消息失败：", topicName, channelId);
                             }else {
-                                loggerService.logSendSuccess(ctx.channel().id().toString(), channelId, qos.value(), topicName, msg);
+                                loggerService.logSendSuccess(String.valueOf(variableHeader.packetId()), ctx.channel().id().toString(), channelId, qos.value(), topicName, msg);
                             }
                         });
                         if (qos == AT_LEAST_ONCE || qos == EXACTLY_ONCE) {
@@ -277,7 +280,7 @@ public class MqttMsgBack {
                             cachePublishMsg(qos, byteBuf, variableHeader, mqttFixedHeaderInfo, context);
                         }
                     }else {
-                        loggerService.logSendFailed(ctx.channel().id().toString(), channelId,
+                        loggerService.logSendFailed(String.valueOf(variableHeader.packetId()), ctx.channel().id().toString(), channelId,
                                 "消息QoS等级大于Topic Qos",qos.value(), topicName, msg);
                     }
                 } else {
@@ -311,7 +314,7 @@ public class MqttMsgBack {
                 }
             }
         }else {
-            loggerService.logSendFailed(ctx.channel().id().toString(), "null", "没有客户端订阅该Topic",qos.value(), topicName, msg);
+            loggerService.logSendFailed(String.valueOf(variableHeader.packetId()),ctx.channel().id().toString(), "null", "没有客户端订阅该Topic",qos.value(), topicName, msg);
 
         }
         // 缓存消息给后订阅的客户端
@@ -344,6 +347,7 @@ public class MqttMsgBack {
                 //构建PUBACK消息体
                 MqttPubAckMessage pubAck = new MqttPubAckMessage(mqttFixedHeaderBack, mqttMessageIdVariableHeaderBack);
                 ctx.writeAndFlush(pubAck);
+                log.info("[{}]发送pubAck", variableHeader.packetId());
                 break;
             //刚好一次
             case EXACTLY_ONCE:
@@ -353,6 +357,7 @@ public class MqttMsgBack {
                 MqttPubReplyMessageVariableHeader mqttPubReplyMessageVariableHeader = new MqttPubReplyMessageVariableHeader(mqttPublishMessage.variableHeader().packetId(), MqttPubReplyMessageVariableHeader.REASON_CODE_OK, MqttProperties.NO_PROPERTIES);
                 MqttMessage mqttMessageBack = new MqttMessage(mqttFixedHeaderBack2, mqttPubReplyMessageVariableHeader);
                 ctx.writeAndFlush(mqttMessageBack);
+                log.info("[{}]发送PUBREC", variableHeader.packetId());
                 break;
             default:
                 break;
@@ -363,8 +368,11 @@ public class MqttMsgBack {
         //缓存一份消息，规定时间内没有收到ack，用作重发，重发时将isDup设置为true,代表重复消息
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBLISH, true, qos, false, mqttFixedHeaderInfo.remainingLength());
         MqttPublishMessage cachePubMessage = new MqttPublishMessage(fixedHeader, variableHeader, byteBuf);
-        ScheduledFuture<?> scheduledFuture = TimerData.scheduledThreadPoolExecutor.scheduleAtFixedRate(new MonitorMsgTime(variableHeader.packetId(), cachePubMessage, context), waitTime, waitTime, TimeUnit.MILLISECONDS);
-        TimerData.scheduledFutureMap.put(variableHeader.packetId(), scheduledFuture);
+        ScheduledFuture<?> scheduledFuture = TimerData.scheduledThreadPoolExecutor.scheduleAtFixedRate(new MonitorMsgTime(variableHeader.packetId(), cachePubMessage, context),
+                waitTime, intervalTime, TimeUnit.MILLISECONDS);
+//        log.info("cache msg: packetId:{}, topic:{}, qos:{}", variableHeader.packetId(), variableHeader.topicName(), qos.value());
+        String key = TimerData.getKey(context.channel().id().toString(), String.valueOf(variableHeader.packetId()));
+        TimerData.scheduledFutureMap.put(key, scheduledFuture);
     }
 
     /**
@@ -380,7 +388,22 @@ public class MqttMsgBack {
         //构建返回报文， 可变报头
         MqttPubReplyMessageVariableHeader mqttPubReplyMessageVariableHeader = new MqttPubReplyMessageVariableHeader(messageIdVariableHeader.messageId(), MqttPubReplyMessageVariableHeader.REASON_CODE_OK, MqttProperties.NO_PROPERTIES);
         MqttMessage mqttMessageBack = new MqttMessage(mqttFixedHeaderBack, mqttPubReplyMessageVariableHeader);
-        ctx.writeAndFlush(mqttMessageBack);
+        int messageId = messageIdVariableHeader.messageId();
+        log.info("[{}]收到PUBREL回复", messageId);
+        log.info("[{}]发送PUBCOMP报文", messageId);
+        ChannelFuture channelFuture = ctx.writeAndFlush(mqttMessageBack);
+        channelFuture.addListener((ChannelFutureListener) channelFuture1 -> {
+            if(channelFuture1.isSuccess()){
+                String key = TimerData.getKey(ctx.channel().id().toString(), String.valueOf(messageId));
+                ScheduledFuture<?> scheduledFuture = TimerData.scheduledFutureMap.remove(key);
+                if (scheduledFuture != null) {
+                    log.info("[{}]移除定时PUBREL任务成功", messageId);
+                    scheduledFuture.cancel(true);
+                }else {
+                    log.error("[{}]移除定时PUBREL任务失败", messageId);
+                }
+            }
+        });
     }
 
     /**
@@ -532,9 +555,15 @@ public class MqttMsgBack {
             MqttMessageIdVariableHeader variableHeader = (MqttMessageIdVariableHeader) mqttMessage.variableHeader();
             int messageId = variableHeader.messageId();
             //等级为1的情况，直接删除原始消息，取消消息重发机制
-            ScheduledFuture<?> scheduledFuture = TimerData.scheduledFutureMap.remove(messageId);
+            log.info("[{}]收到PUBACK", messageId);
+            String key = TimerData.getKey(ctx.channel().id().toString(), String.valueOf(messageId));
+            ScheduledFuture<?> scheduledFuture = TimerData.scheduledFutureMap.remove(key);
             if (scheduledFuture != null) {
                 scheduledFuture.cancel(true);
+                log.info("[{}]移除PUBACK定时任务成功", messageId);
+            }else {
+                log.info("[{}]移除PUBACK定时任务失败", messageId);
+
             }
             //移除消息记录
             ByteBuf byteBuf = cacheRepeatMessages.remove(ctx.channel().id().toString());
@@ -552,31 +581,43 @@ public class MqttMsgBack {
             //构建返回报文，可变报头
             MqttPubReplyMessageVariableHeader mqttPubReplyMessageVariableHeader = new MqttPubReplyMessageVariableHeader(messageId, MqttPubReplyMessageVariableHeader.REASON_CODE_OK, MqttProperties.NO_PROPERTIES);
             MqttMessage mqttMessageBack = new MqttMessage(mqttFixedHeaderBack, mqttPubReplyMessageVariableHeader);
+            log.info("[{}]收到PUBREC", messageId);
             //删除初始消息重发机制
-            ScheduledFuture<?> scheduledFuture = TimerData.scheduledFutureMap.remove(messageId);
+            String key = TimerData.getKey(ctx.channel().id().toString(), String.valueOf(messageId));
+
+            ScheduledFuture<?> scheduledFuture = TimerData.scheduledFutureMap.remove(key);
             if (scheduledFuture != null) {
+                log.info("[{}]移除PUBREC定时任务成功", messageId);
                 scheduledFuture.cancel(true);
+            }else {
+                log.error("[{}]移除PUBREC定时任务失败", messageId);
             }
             //释放消息缓存
             ByteBuf byteBuf = cacheRepeatMessages.remove(ctx.channel().id().toString());
             if (byteBuf != null) {
                 byteBuf.release();
             }
-            ctx.writeAndFlush(mqttMessageBack);
-            //重发机制要放在最下方，否则，一旦出错，会多次出发此机制
-            cachePubrelMsg(messageId, ctx);
+            ChannelFuture channelFuture = ctx.writeAndFlush(mqttMessageBack);
+            channelFuture.addListener((ChannelFutureListener) channelFuture1 -> {
+                if(channelFuture1.isSuccess()){
+                    //重发机制要放在最下方，否则，一旦出错，会多次出发此机制
+                    cachePubrelMsg(messageId, ctx);
+                    log.info("[{}]发送PUBREL", messageId);
+                }
+            });
         }
     }
 
     private void cachePubrelMsg(int messageId, ChannelHandlerContext context) {
-        //缓存一份消息，规定时间内没有收到ack，用作重发，重发时将isDup设置为true,代表重复消息
+        //缓存一份消息，规定时间内没有收到PUBREL响应，用作重发，重发时将isDup设置为true,代表重复消息
         //构建返回报文，固定报头
         MqttFixedHeader mqttFixedHeaderBack = new MqttFixedHeader(MqttMessageType.PUBREL, true, AT_LEAST_ONCE, false, 0);
         //构建返回报文，可变报头
         MqttMessageIdVariableHeader mqttMessageIdVariableHeaderBack = MqttMessageIdVariableHeader.from(messageId);
         MqttMessage mqttMessageBack = new MqttMessage(mqttFixedHeaderBack, mqttMessageIdVariableHeaderBack);
-        ScheduledFuture<?> scheduledFuture = TimerData.scheduledThreadPoolExecutor.scheduleAtFixedRate(new MonitorMsgTime(messageId, mqttMessageBack, context), waitTime, waitTime, TimeUnit.MILLISECONDS);
-        TimerData.scheduledFutureMap.put(messageId, scheduledFuture);
+        ScheduledFuture<?> scheduledFuture = TimerData.scheduledThreadPoolExecutor.scheduleAtFixedRate(new MonitorMsgTime(messageId, mqttMessageBack, context), waitTime, intervalTime, TimeUnit.MILLISECONDS);
+        String key = TimerData.getKey(context.channel().id().toString(), String.valueOf(messageId));
+        TimerData.scheduledFutureMap.put(key, scheduledFuture);
     }
 
     /**
@@ -591,7 +632,8 @@ public class MqttMsgBack {
     public void receivePubcomp(ChannelHandlerContext ctx, MqttMessage mqttMessage) {
         MqttPubReplyMessageVariableHeader variableHeader = (MqttPubReplyMessageVariableHeader) mqttMessage.variableHeader();
         int messageId = variableHeader.messageId();
-        ScheduledFuture<?> scheduledFuture = TimerData.scheduledFutureMap.remove(messageId);
+        String key = TimerData.getKey(ctx.channel().id().toString(), String.valueOf(messageId));
+        ScheduledFuture<?> scheduledFuture = TimerData.scheduledFutureMap.remove(key);
         if (scheduledFuture != null) {
             scheduledFuture.cancel(true);
         }

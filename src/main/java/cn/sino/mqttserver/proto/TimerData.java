@@ -1,12 +1,15 @@
 package cn.sino.mqttserver.proto;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.*;
+
 
 public class TimerData {
 
     public static ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(10);
 
-    public static ConcurrentHashMap<Integer, ScheduledFuture<?>> scheduledFutureMap = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, ScheduledFuture<?>> scheduledFutureMap = new ConcurrentHashMap<>();
+
+    public static String getKey(String contextId, String packageId){
+        return contextId.concat("-").concat(packageId);
+    }
 }

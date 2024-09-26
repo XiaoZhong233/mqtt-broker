@@ -4,4 +4,4 @@ WORKDIR /application
 COPY ./*.jar application.jar
 EXPOSE 3000
 ENV TZ=Asia/Shanghai
-ENTRYPOINT exec java $JAVA_OPTS -jar -Dfile.encoding=UTF-8 -Dio.netty.leakDetectionLevel=disabled application.jar
+ENTRYPOINT exec java $JAVA_OPTS -jar -Dfile.encoding=UTF-8 -Dio.netty.leakDetectionLevel=ADVANCED application.jar

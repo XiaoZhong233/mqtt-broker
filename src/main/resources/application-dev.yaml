@@ -2,3 +2,12 @@ logging:
   level:
     root: info
   config: classpath:logback-spring.xml
+
+mqtt:
+  username: test
+  password: test
+  wait_time: 10000
+  interval: 3000
+  port: 1883
+  enable_clean_session: true
+  enable_ssl: false

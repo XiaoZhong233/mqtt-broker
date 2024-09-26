@@ -28,17 +28,17 @@ public class MqttLoggerService {
     }
 
     public void logInactive(String from){
-        mqttLogger.info("[Logout]-(sn:{})", deviceChannelService.getSnByChannelId(from));
+        mqttLogger.info("[Logout]-(sn:{}, channelId:{})", deviceChannelService.getSnByChannelId(from), from);
     }
 
-    public void logSendSuccess(String from, String to, int qos, String topic, String msg){
-        String format = String.format("[Send Success]-(from: %s, to: %s). [Payload]-(%s)",
+    public void logSendSuccess(String msgId, String from, String to, int qos, String topic, String msg){
+        String format = String.format("[%s][Send Success]-(from: %s, to: %s). [Payload]-(%s)", msgId,
                 deviceChannelService.getSnByChannelId(from), to, formatMqttMsg(qos, topic, msg));
         mqttLogger.info(format);
     }
 
-    public void logSendFailed(String from, String to, String reason, int qos, String topic, String msg){
-        String format = String.format("[Send Failed]-(from: %s, to: %s, reason:%s). [Payload]-(%s)",
+    public void logSendFailed(String msgId, String from, String to, String reason, int qos, String topic, String msg){
+        String format = String.format("[%s][Send Failed]-(from: %s, to: %s, reason:%s). [Payload]-(%s)", msgId,
                 deviceChannelService.getSnByChannelId(from), to,reason, formatMqttMsg(qos, topic, msg));
         mqttLogger.error(format);
     }
