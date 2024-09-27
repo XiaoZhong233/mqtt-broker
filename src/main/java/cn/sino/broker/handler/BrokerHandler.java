@@ -106,7 +106,7 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
             case PINGRESP:
                 break;
             case DISCONNECT:
-                protocolProcess.disConnect().processDisConnect(ctx.channel(), msg);
+                protocolProcess.disConnect().processDisConnect(ctx.channel());
                 break;
             default:
                 break;

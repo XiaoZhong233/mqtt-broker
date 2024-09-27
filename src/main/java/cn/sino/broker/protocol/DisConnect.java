@@ -48,7 +48,7 @@ public class DisConnect {
         this.loggerService = mqttLoggerService;
     }
 
-    public void processDisConnect(Channel channel, MqttMessage msg) {
+    public void processDisConnect(Channel channel) {
         String clientId = (String) channel.attr(AttributeKey.valueOf("clientId")).get();
         SessionStore sessionStore = sessionStoreService.get(clientId);
         if (sessionStore != null && sessionStore.isCleanSession()) {
