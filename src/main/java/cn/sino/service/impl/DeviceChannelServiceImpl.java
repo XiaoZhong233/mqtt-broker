@@ -6,16 +6,11 @@ import cn.sino.service.DeviceChannelService;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
-import static cn.sino.mqttserver.handler.ServerMqttHandler.clientMap;
+import static cn.sino.broker.handler.ServerMqttHandler.clientMap;
 
 @Slf4j
 @Service
