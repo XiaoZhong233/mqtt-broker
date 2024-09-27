@@ -26,6 +26,7 @@ import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.nutz.lang.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,8 +42,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
+@Slf4j
 public class BrokerServer {
-    private static final Logger LOGGER = LoggerFactory.getLogger(BrokerServer.class);
+//    private static final Logger LOGGER = LoggerFactory.getLogger(BrokerServer.class);
     @Autowired
     private BrokerProperties brokerProperties;
     @Autowired
@@ -52,24 +54,10 @@ public class BrokerServer {
     private SslContext sslContext;
     private Channel channel;
     private Channel websocketChannel;
-    private ChannelGroup channelGroup;
-    private Map<String, ChannelId> channelIdMap;
-
-    @Bean(name = "channelGroup")
-    public ChannelGroup getChannels() {
-        return this.channelGroup;
-    }
-
-    @Bean(name = "channelIdMap")
-    public Map<String, ChannelId> getChannelIdMap() {
-        return this.channelIdMap;
-    }
 
     @PostConstruct
     public void init(){
-        LOGGER.info("Initializing {} MQTT Broker ...", "[" + brokerProperties.getId() + "]");
-        channelGroup = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
-        channelIdMap = new HashMap<>();
+        log.info("Initializing {} MQTT Broker ...", "[" + brokerProperties.getId() + "]");
         bossGroup = brokerProperties.isUseEpoll() ? new EpollEventLoopGroup(brokerProperties.getBossGroup_nThreads()) : new NioEventLoopGroup(brokerProperties.getBossGroup_nThreads());
         workerGroup = brokerProperties.isUseEpoll() ? new EpollEventLoopGroup(brokerProperties.getWorkerGroup_nThreads()) : new NioEventLoopGroup(brokerProperties.getWorkerGroup_nThreads());
     }
@@ -86,16 +74,14 @@ public class BrokerServer {
         mqttServer();
         if (brokerProperties.isWebsocketEnabled()) {
             websocketServer();
-            LOGGER.info("MQTT Broker {} is up and running. Open Port: {} WebSocketPort: {}", "[" + brokerProperties.getId() + "]", brokerProperties.getPort(), brokerProperties.getWebsocketPort());
+            log.info("MQTT Broker {} is up and running. Open Port: {} WebSocketPort: {}", "[" + brokerProperties.getId() + "]", brokerProperties.getPort(), brokerProperties.getWebsocketPort());
         } else {
-            LOGGER.info("MQTT Broker {} is up and running. Open Port: {} ", "[" + brokerProperties.getId() + "]", brokerProperties.getPort());
+            log.info("MQTT Broker {} is up and running. Open Port: {} ", "[" + brokerProperties.getId() + "]", brokerProperties.getPort());
         }
     }
 
     public void stop() {
-        LOGGER.info("Shutdown {} MQTT Broker ...", "[" + brokerProperties.getId() + "]");
-        channelGroup = null;
-        channelIdMap = null;
+        log.info("Shutdown {} MQTT Broker ...", "[" + brokerProperties.getId() + "]");
         bossGroup.shutdownGracefully();
         bossGroup = null;
         workerGroup.shutdownGracefully();
@@ -104,7 +90,7 @@ public class BrokerServer {
         channel = null;
         websocketChannel.closeFuture().syncUninterruptibly();
         websocketChannel = null;
-        LOGGER.info("MQTT Broker {} shutdown finish.", "[" + brokerProperties.getId() + "]");
+        log.info("MQTT Broker {} shutdown finish.", "[" + brokerProperties.getId() + "]");
     }
 
     private void mqttServer() throws Exception {
