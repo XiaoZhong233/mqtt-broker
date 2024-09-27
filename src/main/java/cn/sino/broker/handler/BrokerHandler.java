@@ -8,6 +8,8 @@ package cn.sino.broker.handler;
 import cn.sino.broker.config.BrokerProperties;
 import cn.sino.broker.protocol.ProtocolProcess;
 import cn.sino.common.session.SessionStore;
+import cn.sino.service.impl.MqttLoggerService;
+import cn.sino.store.session.SessionStoreService;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.mqtt.*;
@@ -35,6 +37,10 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
     private ChannelGroup channelGroup;
     @Autowired
     private Map<String, ChannelId> channelIdMap;
+    @Autowired
+    SessionStoreService sessionStoreService;
+    @Autowired
+    MqttLoggerService mqttLoggerService;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -46,6 +52,9 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         super.channelInactive(ctx);
+        String clientId = (String) ctx.channel().attr(AttributeKey.valueOf("clientId")).get();
+        sessionStoreService.remove(clientId);
+        mqttLoggerService.logInactive(clientId, ctx.channel().id().toString());
         this.channelGroup.remove(ctx.channel());
         this.channelIdMap.remove(brokerProperties.getId() + "_" + ctx.channel().id().asLongText());
     }
@@ -117,6 +126,7 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         if (cause instanceof IOException) {
             // 远程主机强迫关闭了一个现有的连接的异常
+            protocolProcess.disConnect().processDisConnect(ctx.channel());
             ctx.close();
         } else {
             super.exceptionCaught(ctx, cause);

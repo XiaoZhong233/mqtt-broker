@@ -27,8 +27,12 @@ public class MqttLoggerService {
         mqttLogger.info("[Login]-(sn:{}, ip:{})", sn, ip);
     }
 
-    public void logInactive(String from){
-        mqttLogger.info("[Logout]-(sn:{}, channelId:{})", deviceChannelService.getSnByChannelId(from), from);
+    public void logInactive(String channelId){
+        mqttLogger.info("[Logout]-(sn:{}, channelId:{})", deviceChannelService.getSnByChannelId(channelId), channelId);
+    }
+
+    public void logInactive(String clientId, String channelId){
+        mqttLogger.info("[Logout]-(sn:{}, channelId:{})", clientId, channelId);
     }
 
     public void logSendSuccess(String msgId, String from, String to, int qos, String topic, String msg){
