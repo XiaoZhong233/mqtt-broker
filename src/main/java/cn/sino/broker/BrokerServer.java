@@ -2,6 +2,7 @@ package cn.sino.broker;
 
 import cn.sino.broker.codec.MqttWebSocketCodec;
 import cn.sino.broker.config.BrokerProperties;
+import cn.sino.broker.config.Cert;
 import cn.sino.broker.handler.BrokerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -36,6 +37,7 @@ import org.springframework.stereotype.Component;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLEngine;
+import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyStore;
 import java.util.HashMap;
@@ -56,7 +58,7 @@ public class BrokerServer {
     private Channel websocketChannel;
 
     @PostConstruct
-    public void init(){
+    public void init() throws IOException {
         log.info("Initializing {} MQTT Broker ...", "[" + brokerProperties.getId() + "]");
         bossGroup = brokerProperties.isUseEpoll() ? new EpollEventLoopGroup(brokerProperties.getBossGroup_nThreads()) : new NioEventLoopGroup(brokerProperties.getBossGroup_nThreads());
         workerGroup = brokerProperties.isUseEpoll() ? new EpollEventLoopGroup(brokerProperties.getWorkerGroup_nThreads()) : new NioEventLoopGroup(brokerProperties.getWorkerGroup_nThreads());
@@ -64,12 +66,7 @@ public class BrokerServer {
 
     public void start() throws Exception {
         if (brokerProperties.isSslEnabled()) {
-            KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream("keystore/server.pfx");
-            keyStore.load(inputStream, brokerProperties.getSslPassword().toCharArray());
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
-            kmf.init(keyStore, brokerProperties.getSslPassword().toCharArray());
-            sslContext = SslContextBuilder.forServer(kmf).build();
+            sslContext = Cert.build();
         }
         mqttServer();
         if (brokerProperties.isWebsocketEnabled()) {
@@ -110,7 +107,7 @@ public class BrokerServer {
                         if (brokerProperties.isSslEnabled()) {
                             SSLEngine sslEngine = sslContext.newEngine(socketChannel.alloc());
                             sslEngine.setUseClientMode(false);        // 服务端模式
-                            sslEngine.setNeedClientAuth(false);        // 不需要验证客户端
+                            sslEngine.setNeedClientAuth(true);        // 不需要验证客户端
                             channelPipeline.addLast("ssl", new SslHandler(sslEngine));
                         }
                         channelPipeline.addLast("decoder", new MqttDecoder());
@@ -143,7 +140,7 @@ public class BrokerServer {
                         if (brokerProperties.isSslEnabled()) {
                             SSLEngine sslEngine = sslContext.newEngine(socketChannel.alloc());
                             sslEngine.setUseClientMode(false);        // 服务端模式
-                            sslEngine.setNeedClientAuth(false);        // 不需要验证客户端
+                            sslEngine.setNeedClientAuth(true);        // 不需要验证客户端
                             channelPipeline.addLast("ssl", new SslHandler(sslEngine));
                         }
                         // 将请求和应答消息编码或解码为HTTP消息

@@ -8,9 +8,11 @@ import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.asymmetric.KeyType;
 import cn.hutool.crypto.asymmetric.RSA;
+import cn.sino.broker.config.BrokerProperties;
 import cn.sino.common.auth.IAuthService;
 import jakarta.annotation.PostConstruct;
 import org.nutz.ioc.loader.annotation.IocBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.security.interfaces.RSAPrivateKey;
@@ -21,18 +23,19 @@ import java.security.interfaces.RSAPrivateKey;
 @Component
 public class AuthService implements IAuthService {
 
-	private RSAPrivateKey privateKey;
+	@Autowired
+	BrokerProperties brokerProperties;
+
 
 	@Override
 	public boolean checkValid(String username, String password) {
-		if (StrUtil.isBlank(username)) return false;
-		if (StrUtil.isBlank(password)) return false;
-		return username.equals("test") && password.equals("test");
+		if(brokerProperties.isMqttPasswordMust()){
+			if (StrUtil.isBlank(brokerProperties.getUsername())) return false;
+			if (StrUtil.isBlank(brokerProperties.getPassword())) return false;
+			return username.equals(brokerProperties.getUsername()) && password.equals(brokerProperties.getUsername());
+		}
+		return true;
 	}
 
-//	@PostConstruct
-//	public void init() {
-//		privateKey = IoUtil.readObj(AuthService.class.getClassLoader().getResourceAsStream("keystore/auth-private.key"));
-//	}
 
 }
