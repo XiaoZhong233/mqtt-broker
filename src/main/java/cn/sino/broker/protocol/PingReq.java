@@ -8,6 +8,7 @@ package cn.sino.broker.protocol;
 import cn.sino.broker.config.BrokerProperties;
 import cn.sino.common.session.ISessionStoreService;
 import cn.sino.common.session.SessionStore;
+import cn.sino.service.impl.MqttLoggerService;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelId;
 import io.netty.channel.group.ChannelGroup;
@@ -25,17 +26,21 @@ import java.util.Map;
 @Component
 public class PingReq {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PingReq.class);
+//    private static final Logger LOGGER = LoggerFactory.getLogger(PingReq.class);
     private ISessionStoreService sessionStoreService;
     private BrokerProperties brokerProperties;
     private ChannelGroup channelGroup;
     private Map<String, ChannelId> channelIdMap;
+    private MqttLoggerService loggerService;
 
-    public PingReq(ISessionStoreService sessionStoreService, BrokerProperties brokerProperties, ChannelGroup channelGroup, Map<String, ChannelId> channelIdMap) {
+    public PingReq(ISessionStoreService sessionStoreService, BrokerProperties brokerProperties,
+                   ChannelGroup channelGroup, Map<String, ChannelId> channelIdMap,
+                   MqttLoggerService mqttLoggerService) {
         this.sessionStoreService = sessionStoreService;
         this.brokerProperties = brokerProperties;
         this.channelGroup = channelGroup;
         this.channelIdMap = channelIdMap;
+        this.loggerService = mqttLoggerService;
     }
 
     public void processPingReq(Channel channel, MqttMessage msg) {
@@ -47,7 +52,7 @@ public class PingReq {
                 sessionStoreService.expire(clientId, sessionStore.getExpire());
                 MqttMessage pingRespMessage = MqttMessageFactory.newMessage(
                         new MqttFixedHeader(MqttMessageType.PINGRESP, false, MqttQoS.AT_MOST_ONCE, false, 0), null, null);
-                LOGGER.debug("PINGREQ - clientId: {}", clientId);
+                loggerService.info("PINGREQ - clientId: {}", clientId);
                 channel.writeAndFlush(pingRespMessage);
             }
         }

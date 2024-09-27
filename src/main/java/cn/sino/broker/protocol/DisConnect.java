@@ -10,6 +10,7 @@ import cn.sino.common.message.IDupPublishMessageStoreService;
 import cn.sino.common.session.ISessionStoreService;
 import cn.sino.common.session.SessionStore;
 import cn.sino.common.subscribe.ISubscribeStoreService;
+import cn.sino.service.impl.MqttLoggerService;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.util.AttributeKey;
@@ -24,7 +25,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DisConnect {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DisConnect.class);
+//    private static final Logger LOGGER = LoggerFactory.getLogger(DisConnect.class);
 
     private ISessionStoreService sessionStoreService;
 
@@ -34,11 +35,17 @@ public class DisConnect {
 
     private IDupPubRelMessageStoreService dupPubRelMessageStoreService;
 
-    public DisConnect(ISessionStoreService sessionStoreService, ISubscribeStoreService subscribeStoreService, IDupPublishMessageStoreService dupPublishMessageStoreService, IDupPubRelMessageStoreService dupPubRelMessageStoreService) {
+    private MqttLoggerService loggerService;
+
+    public DisConnect(ISessionStoreService sessionStoreService, ISubscribeStoreService subscribeStoreService,
+                      IDupPublishMessageStoreService dupPublishMessageStoreService,
+                      IDupPubRelMessageStoreService dupPubRelMessageStoreService,
+                      MqttLoggerService mqttLoggerService) {
         this.sessionStoreService = sessionStoreService;
         this.subscribeStoreService = subscribeStoreService;
         this.dupPublishMessageStoreService = dupPublishMessageStoreService;
         this.dupPubRelMessageStoreService = dupPubRelMessageStoreService;
+        this.loggerService = mqttLoggerService;
     }
 
     public void processDisConnect(Channel channel, MqttMessage msg) {
@@ -49,7 +56,7 @@ public class DisConnect {
             dupPublishMessageStoreService.removeByClient(clientId);
             dupPubRelMessageStoreService.removeByClient(clientId);
         }
-        LOGGER.debug("DISCONNECT - clientId: {}, cleanSession: {}", clientId, sessionStore.isCleanSession());
+        loggerService.info("DISCONNECT - clientId: {}, cleanSession: {}", clientId, sessionStore.isCleanSession());
         sessionStoreService.remove(clientId);
         channel.close();
     }

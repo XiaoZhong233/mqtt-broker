@@ -14,6 +14,7 @@ import cn.sino.common.message.IDupPublishMessageStoreService;
 import cn.sino.common.session.ISessionStoreService;
 import cn.sino.common.session.SessionStore;
 import cn.sino.common.subscribe.ISubscribeStoreService;
+import cn.sino.service.impl.MqttLoggerService;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelId;
@@ -35,7 +36,8 @@ import java.util.Map;
 @Component
 public class Connect {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Connect.class);
+//    private static final Logger LOGGER = LoggerFactory.getLogger(Connect.class);
+    private final MqttLoggerService loggerService;
 
     private final ISessionStoreService sessionStoreService;
 
@@ -54,7 +56,8 @@ public class Connect {
     private final Map<String, ChannelId> channelIdMap;
 
     public Connect(ISessionStoreService sessionStoreService, ISubscribeStoreService subscribeStoreService, IDupPublishMessageStoreService dupPublishMessageStoreService, IDupPubRelMessageStoreService dupPubRelMessageStoreService,
-                   IAuthService authService, BrokerProperties brokerProperties, ChannelGroup channelGroup, Map<String, ChannelId> channelIdMap) {
+                   IAuthService authService, BrokerProperties brokerProperties, ChannelGroup channelGroup,
+                   Map<String, ChannelId> channelIdMap, MqttLoggerService mqttLoggerService) {
         this.sessionStoreService = sessionStoreService;
         this.subscribeStoreService = subscribeStoreService;
         this.dupPublishMessageStoreService = dupPublishMessageStoreService;
@@ -63,6 +66,7 @@ public class Connect {
         this.brokerProperties = brokerProperties;
         this.channelGroup = channelGroup;
         this.channelIdMap = channelIdMap;
+        this.loggerService = mqttLoggerService;
     }
 
     public void processConnect(Channel channel, MqttConnectMessage msg) {
@@ -163,7 +167,7 @@ public class Connect {
                 new MqttFixedHeader(MqttMessageType.CONNACK, false, MqttQoS.AT_MOST_ONCE, false, 0),
                 new MqttConnAckVariableHeader(MqttConnectReturnCode.CONNECTION_ACCEPTED, sessionPresent), null);
         channel.writeAndFlush(okResp);
-        LOGGER.debug("CONNECT - clientId: {}, cleanSession: {}", msg.payload().clientIdentifier(), msg.variableHeader().isCleanSession());
+        loggerService.info("CONNECT - clientId: {}, cleanSession: {}", msg.payload().clientIdentifier(), msg.variableHeader().isCleanSession());
         // 如果cleanSession为0, 需要重发同一clientId存储的未完成的QoS1和QoS2的DUP消息
         if (!msg.variableHeader().isCleanSession()) {
             List<DupPublishMessageStore> dupPublishMessageStoreList = dupPublishMessageStoreService.get(msg.payload().clientIdentifier());
