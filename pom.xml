@@ -86,6 +86,13 @@
             <artifactId>guava</artifactId>
             <version>33.3.0-jre</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.1.8</version>
+        </dependency>
+
         <!--消息中间件转发包，按需选择-->
         <dependency>
             <groupId>org.apache.rocketmq</groupId>

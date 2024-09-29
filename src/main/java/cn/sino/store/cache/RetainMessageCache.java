@@ -11,9 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Created by wizzer on 2018
- */
+
 @Component
 public class RetainMessageCache {
     private final static String CACHE_PRE = "mqttwk:retain:";

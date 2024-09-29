@@ -10,9 +10,7 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Created by wizzer on 2018
- */
+
 @Component
 public class SubscribeNotWildcardCache {
     private final static String CACHE_PRE = "mqttwk:subnotwildcard:";

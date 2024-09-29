@@ -19,6 +19,10 @@ public class MqttLoggerService {
     DeviceChannelService deviceChannelService;
 
     private static final Logger mqttLogger = LoggerFactory.getLogger("mqttLog");
+
+    public void debug(String message, Object... objects) {
+        mqttLogger.debug(message, objects);
+    }
     public void info(String message, Object... objects) {
         mqttLogger.info(message, objects);
     }

@@ -29,4 +29,5 @@ public class BrokerProperties {
     private int bossGroup_nThreads = 4; // bossGroup线程数
     private int workerGroup_nThreads = 20; // workerGroup线程数
     private boolean amqp_enable;
+    private String session_storage_type = "caffeine";
 }

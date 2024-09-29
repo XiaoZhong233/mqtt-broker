@@ -3,6 +3,7 @@ package cn.sino.store.message;
 
 import cn.sino.common.message.IMessageIdService;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,9 +14,8 @@ import org.springframework.stereotype.Component;
  * Created by wizzer on 2018
  */
 @Component
+@Slf4j
 public class MessageIdService implements IMessageIdService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MessageIdService.class);
-
     @Autowired
     private StringRedisTemplate redisService;
 
@@ -31,7 +31,7 @@ public class MessageIdService implements IMessageIdService {
                 }
             }
         } catch (Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            log.error(e.getMessage(), e);
         }
         return 0;
     }

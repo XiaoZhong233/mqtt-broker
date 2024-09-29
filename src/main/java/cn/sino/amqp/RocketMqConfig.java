@@ -1,6 +1,7 @@
 package cn.sino.amqp;
 
 
+import jakarta.annotation.PreDestroy;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -17,6 +18,8 @@ public class RocketMqConfig {
     private final String producerGroup;
     private final String relayTopic;
     private final Integer retryTime;
+    private DefaultMQProducer producer;
+
 
     public RocketMqConfig(@Value("${rocketmq.name-server}") String nameServer,
                           @Value("${rocketmq.producer.group}")String producerGroup,
@@ -32,7 +35,16 @@ public class RocketMqConfig {
     public DefaultMQProducer defaultMQProducer() throws MQClientException {
         DefaultMQProducer producer = new DefaultMQProducer(producerGroup); //（1）
         producer.setNamesrvAddr(nameServer);
+        this.producer = producer;
         producer.start();
         return producer;
+    }
+
+    @PreDestroy
+    public void shutdownProducer() {
+        if (producer != null) {
+            producer.shutdown();
+            log.info("RocketMQ Producer shutdown successfully.");
+        }
     }
 }

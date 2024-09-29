@@ -5,10 +5,13 @@
 package cn.sino.store.session;
 
 
+import cn.sino.broker.config.BrokerProperties;
 import cn.sino.common.session.ISessionStoreService;
 import cn.sino.common.session.SessionStore;
+import cn.sino.store.util.NutMapCache;
 import cn.sino.store.util.StoreUtil;
 import com.alibaba.fastjson2.JSON;
+import jakarta.annotation.PostConstruct;
 import org.nutz.lang.Strings;
 import org.nutz.lang.util.NutMap;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,32 +29,55 @@ public class SessionStoreService implements ISessionStoreService {
     private final static String CACHE_PRE = "mqttwk:session:";
     @Autowired
     private StringRedisTemplate redisService;
+    @Autowired
+    BrokerProperties brokerProperties;
+    private NutMapCache nutMapCache;
+
+    @PostConstruct
+    public void init(){
+        nutMapCache = new NutMapCache(Math.round(brokerProperties.getKeepAlive()*1.5f));
+    }
+
 
     @Override
     public void put(String clientId, SessionStore sessionStore, int expire) {
         //SessionStore对象不能正常转为JSON,使用工具类类解决
         NutMap nutMap = StoreUtil.transPublishToMapBeta(sessionStore);
-        if (nutMap != null) {
+        if (nutMap == null) {
+            return;
+        }
+        if(brokerProperties.getSession_storage_type().equals("redis")){
             if (expire > 0) {
                 redisService.opsForValue().set(CACHE_PRE + clientId, JSON.toJSONString(nutMap),expire, TimeUnit.SECONDS);
             } else {
                 redisService.opsForValue().set(CACHE_PRE + clientId, JSON.toJSONString(nutMap));
             }
+        }else {
+            nutMapCache.put(CACHE_PRE + clientId, nutMap);
         }
 
     }
 
     @Override
     public void expire(String clientId, int expire) {
-        redisService.expire(CACHE_PRE + clientId, expire, TimeUnit.SECONDS);
+        if(brokerProperties.getSession_storage_type().equals("redis")){
+            redisService.expire(CACHE_PRE + clientId, expire, TimeUnit.SECONDS);
+        }else {
+            nutMapCache.get(CACHE_PRE + clientId);
+        }
     }
 
 
     @Override
     public SessionStore get(String clientId) {
-        String jsonObj = redisService.opsForValue().get(CACHE_PRE + clientId);
-        if (Strings.isNotBlank(jsonObj)) {
-            NutMap nutMap = JSON.parseObject(jsonObj, NutMap.class);
+        if(brokerProperties.getSession_storage_type().equals("redis")){
+            String jsonObj = redisService.opsForValue().get(CACHE_PRE + clientId);
+            if (Strings.isNotBlank(jsonObj)) {
+                NutMap nutMap = JSON.parseObject(jsonObj, NutMap.class);
+                return StoreUtil.mapTransToPublishMsgBeta(nutMap);
+            }
+        }else {
+            NutMap nutMap = nutMapCache.get(CACHE_PRE + clientId);
             return StoreUtil.mapTransToPublishMsgBeta(nutMap);
         }
         return null;
@@ -59,14 +85,22 @@ public class SessionStoreService implements ISessionStoreService {
 
     @Override
     public boolean containsKey(String clientId) {
-        return Boolean.TRUE.equals(redisService.hasKey(CACHE_PRE + clientId));
+        if(brokerProperties.getSession_storage_type().equals("redis")){
+            return Boolean.TRUE.equals(redisService.hasKey(CACHE_PRE + clientId));
+        }else {
+            return nutMapCache.containsKey(CACHE_PRE + clientId);
+        }
     }
 
 
     @Override
     @Async
     public void remove(String clientId) {
-        redisService.delete(CACHE_PRE + clientId);
+        if(brokerProperties.getSession_storage_type().equals("redis")){
+            redisService.delete(CACHE_PRE + clientId);
+        }else {
+            nutMapCache.remove(CACHE_PRE + clientId);
+        }
     }
 
 }

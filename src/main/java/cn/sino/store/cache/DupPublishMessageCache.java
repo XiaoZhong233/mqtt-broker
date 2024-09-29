@@ -3,9 +3,6 @@ package cn.sino.store.cache;
 
 import cn.sino.common.message.DupPublishMessageStore;
 import com.alibaba.fastjson2.JSONObject;
-import org.nutz.ioc.impl.PropertiesProxy;
-import org.nutz.ioc.loader.annotation.Inject;
-import org.nutz.ioc.loader.annotation.IocBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
@@ -14,9 +11,7 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Created by wizzer on 2018
- */
+
 @Component
 public class DupPublishMessageCache {
     private final static String CACHE_PRE = "mqttwk:publish:";

@@ -11,11 +11,9 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Created by wizzer on 2018
- */
+
 @Component
-public class DupPubRelMessageCache {
+public class DupPubRelMessageCache{
     private final static String CACHE_PRE = "mqttwk:pubrel:";
     @Autowired
     private StringRedisTemplate redisService;
