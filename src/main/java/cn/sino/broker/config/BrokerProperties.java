@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "mqttwk.broker")
 public class BrokerProperties {
-    private String id = "mqttwk"; // Broker唯一标识
+    private String id = "mqtt-broker-1"; // Broker唯一标识
     private String host = "127.0.0.1"; // 服务启动的IP
     private int port = 8885; // 端口号, 默认8885
     private String username; //用户名

@@ -53,7 +53,7 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         super.channelInactive(ctx);
         String clientId = (String) ctx.channel().attr(AttributeKey.valueOf("clientId")).get();
-        sessionStoreService.remove(clientId);
+//        sessionStoreService.remove(clientId);
         mqttLoggerService.logInactive(clientId, ctx.channel().id().toString());
         this.channelGroup.remove(ctx.channel());
         this.channelIdMap.remove(brokerProperties.getId() + "_" + ctx.channel().id().asLongText());
