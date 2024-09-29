@@ -5,6 +5,8 @@
 package cn.sino.broker.protocol;
 
 
+import cn.sino.amqp.InternalMessage;
+import cn.sino.amqp.RelayService;
 import cn.sino.broker.config.BrokerProperties;
 import cn.sino.common.message.*;
 import cn.sino.common.session.ISessionStoreService;
@@ -44,8 +46,7 @@ public class Publish {
 
     private IDupPublishMessageStoreService dupPublishMessageStoreService;
 
-    //todo: 消息队列or集群转发
-//    private InternalCommunication internalCommunication;
+    private RelayService relayService;
 
     private ChannelGroup channelGroup;
 
@@ -54,7 +55,8 @@ public class Publish {
     private BrokerProperties brokerProperties;
 
     public Publish(ISessionStoreService sessionStoreService, ISubscribeStoreService subscribeStoreService, IMessageIdService messageIdService, IRetainMessageStoreService retainMessageStoreService, IDupPublishMessageStoreService dupPublishMessageStoreService,
-                   ChannelGroup channelGroup, Map<String, ChannelId> channelIdMap, BrokerProperties brokerProperties, MqttLoggerService mqttLoggerService) {
+                   ChannelGroup channelGroup, Map<String, ChannelId> channelIdMap, BrokerProperties brokerProperties,
+                   MqttLoggerService mqttLoggerService, RelayService relayService) {
         this.sessionStoreService = sessionStoreService;
         this.subscribeStoreService = subscribeStoreService;
         this.messageIdService = messageIdService;
@@ -65,6 +67,7 @@ public class Publish {
         this.channelIdMap = channelIdMap;
         this.brokerProperties = brokerProperties;
         this.loggerService = mqttLoggerService;
+        this.relayService = relayService;
     }
 
     public void processPublish(Channel channel, MqttPublishMessage msg) {
@@ -81,9 +84,10 @@ public class Publish {
         if (msg.fixedHeader().qosLevel() == MqttQoS.AT_MOST_ONCE) {
             byte[] messageBytes = new byte[msg.payload().readableBytes()];
             msg.payload().getBytes(msg.payload().readerIndex(), messageBytes);
-//            InternalMessage internalMessage = new InternalMessage().setTopic(msg.variableHeader().topicName())
-//                    .setMqttQoS(msg.fixedHeader().qosLevel().value()).setMessageBytes(messageBytes)
-//                    .setDup(false).setRetain(false).setClientId(clientId);
+            InternalMessage internalMessage = new InternalMessage().setTopic(msg.variableHeader().topicName())
+                    .setMqttQoS(msg.fixedHeader().qosLevel().value()).setMessageBytes(messageBytes)
+                    .setDup(false).setRetain(false).setClientId(clientId);
+            relayService.send(internalMessage);
 //            internalCommunication.internalSend(internalMessage);
             this.sendPublishMessage(msg.variableHeader().topicName(), msg.fixedHeader().qosLevel(), messageBytes, false, false);
         }
@@ -91,9 +95,10 @@ public class Publish {
         if (msg.fixedHeader().qosLevel() == MqttQoS.AT_LEAST_ONCE) {
             byte[] messageBytes = new byte[msg.payload().readableBytes()];
             msg.payload().getBytes(msg.payload().readerIndex(), messageBytes);
-//            InternalMessage internalMessage = new InternalMessage().setTopic(msg.variableHeader().topicName())
-//                    .setMqttQoS(msg.fixedHeader().qosLevel().value()).setMessageBytes(messageBytes)
-//                    .setDup(false).setRetain(false).setClientId(clientId);
+            InternalMessage internalMessage = new InternalMessage().setTopic(msg.variableHeader().topicName())
+                    .setMqttQoS(msg.fixedHeader().qosLevel().value()).setMessageBytes(messageBytes)
+                    .setDup(false).setRetain(false).setClientId(clientId);
+            relayService.send(internalMessage);
 //            internalCommunication.internalSend(internalMessage);
             this.sendPublishMessage(msg.variableHeader().topicName(), msg.fixedHeader().qosLevel(), messageBytes, false, false);
             this.sendPubAckMessage(channel, msg.variableHeader().packetId());
@@ -102,9 +107,10 @@ public class Publish {
         if (msg.fixedHeader().qosLevel() == MqttQoS.EXACTLY_ONCE) {
             byte[] messageBytes = new byte[msg.payload().readableBytes()];
             msg.payload().getBytes(msg.payload().readerIndex(), messageBytes);
-//            InternalMessage internalMessage = new InternalMessage().setTopic(msg.variableHeader().topicName())
-//                    .setMqttQoS(msg.fixedHeader().qosLevel().value()).setMessageBytes(messageBytes)
-//                    .setDup(false).setRetain(false).setClientId(clientId);
+            InternalMessage internalMessage = new InternalMessage().setTopic(msg.variableHeader().topicName())
+                    .setMqttQoS(msg.fixedHeader().qosLevel().value()).setMessageBytes(messageBytes)
+                    .setDup(false).setRetain(false).setClientId(clientId);
+            relayService.send(internalMessage);
 //            internalCommunication.internalSend(internalMessage);
             this.sendPublishMessage(msg.variableHeader().topicName(), msg.fixedHeader().qosLevel(), messageBytes, false, false);
             this.sendPubRecMessage(channel, msg.variableHeader().packetId());

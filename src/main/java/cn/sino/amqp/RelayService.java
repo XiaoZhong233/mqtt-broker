@@ -19,6 +19,7 @@ public class RelayService {
     DefaultMQProducer producer;
     BrokerProperties brokerProperties;
     RocketMqConfig rocketMqConfig;
+
     public void send(InternalMessage internalMessage) {
         String processId = Lang.JdkTool.getProcessId("0");
         //broker唯一标识 mqttwk.broker.id
