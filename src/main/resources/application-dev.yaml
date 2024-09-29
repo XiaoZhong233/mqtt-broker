@@ -15,10 +15,21 @@ mqtt:
 spring:
   data:
     redis:
-      host: 192.168.2.103
+      host: 192.168.2.219
       port: 59504
       timeout: 5000ms
       password: NaviCloud1234
+
+
+rocketmq:
+  name-server: 192.168.2.219:9876
+  producer:
+    group: mqtt-relay-producer
+    relay:
+      topic: mqtt_publish
+      retries: 3
+
+
 
 
 mqttwk:
@@ -40,3 +51,4 @@ mqttwk:
     so-keep-alive: true  # 是否开启心跳保活机制, 默认开启
     bossGroup-nThreads: 4  # bossGroup线程数, 默认4
     workerGroup-nThreads: 20  # workerGroup线程数, 默认20
+    amqp-enable: false #是否开启消息队列转发, 当前实现为rocketMQ

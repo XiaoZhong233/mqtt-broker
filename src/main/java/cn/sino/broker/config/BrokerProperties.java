@@ -28,4 +28,5 @@ public class BrokerProperties {
 //    private boolean kafkaBrokerEnabled = false; // 是否启用Kafka消息转发
     private int bossGroup_nThreads = 4; // bossGroup线程数
     private int workerGroup_nThreads = 20; // workerGroup线程数
+    private boolean amqp_enable;
 }
