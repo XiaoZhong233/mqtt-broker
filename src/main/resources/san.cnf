@@ -1,0 +1,23 @@
+[ req ]
+default_bits        = 2048
+prompt              = no
+default_md          = sha256
+req_extensions      = req_ext
+distinguished_name  = dn
+
+[ dn ]
+C = CN
+ST = SH
+L = San Francisco
+O = sinognss
+CN = cloud.sinognss.com  # 这是证书的 Common Name (CN)
+
+[ req_ext ]
+subjectAltName = @alt_names  # 正确引用 alt_names 部分
+
+[ alt_names ]
+DNS.1 = cloud.sinognss.com   # 指定域名
+DNS.2 = localhost            # 本地域名
+IP.1 = 127.0.0.1             # 本地IP
+IP.2 = 192.168.2.219         # 测试服
+IP.3 = 140.207.166.210       # 测试服外网

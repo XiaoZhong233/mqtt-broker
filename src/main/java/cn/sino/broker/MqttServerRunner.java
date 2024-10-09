@@ -35,8 +35,8 @@ public class MqttServerRunner implements CommandLineRunner {
 
     @Autowired
     ServerMqttHandler serverMqttHandler;
-    @Autowired
-    IdleReadStateHandler idleReadStateHandler;
+//    @Autowired
+//    IdleReadStateHandler idleReadStateHandler;
 
     private SslContext sslContext;
 

@@ -13,12 +13,10 @@ import org.springframework.stereotype.Component;
 
 
 @Slf4j
-@Component
+//@Component
 @ChannelHandler.Sharable
 public class IdleReadStateHandler extends ChannelInboundHandlerAdapter {
 
-    @Autowired
-    private MqttMsgBack mqttMsgBack;
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
@@ -28,8 +26,16 @@ public class IdleReadStateHandler extends ChannelInboundHandlerAdapter {
                 //断开连接
                 Channel channel = ctx.channel();
                 String channelId = channel.id().asShortText();
-                log.info("channel {} is idle, close it", channelId);
+                log.info("channel {} is read idle, close it", channelId);
                 channel.close();
+            } else if (event.state() == IdleState.WRITER_IDLE) {
+                Channel channel = ctx.channel();
+                String channelId = channel.id().asShortText();
+                log.info("channel {} is write idle, close it", channelId);
+            } else if(event.state() == IdleState.ALL_IDLE){
+                Channel channel = ctx.channel();
+                String channelId = channel.id().asShortText();
+                log.info("channel {} is ALL idle, close it", channelId);
             }
         }
     }

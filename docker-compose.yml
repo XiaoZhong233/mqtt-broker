@@ -7,8 +7,6 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./log:/application/log
-      - ./radar_output:/application/radar_output
-      - ./radarData:/application/radarData
     ports:
       - "1883:1883"
     restart: always

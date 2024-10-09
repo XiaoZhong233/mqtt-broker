@@ -4,6 +4,7 @@ import cn.sino.broker.codec.MqttWebSocketCodec;
 import cn.sino.broker.config.BrokerProperties;
 import cn.sino.broker.config.Cert;
 import cn.sino.broker.handler.BrokerHandler;
+import cn.sino.broker.handler.IdleReadStateHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.epoll.EpollEventLoopGroup;
@@ -42,6 +43,7 @@ import java.io.InputStream;
 import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
@@ -56,7 +58,6 @@ public class BrokerServer {
     private SslContext sslContext;
     private Channel channel;
     private Channel websocketChannel;
-
     @PostConstruct
     public void init() throws IOException {
         log.info("Initializing {} MQTT Broker ...", "[" + brokerProperties.getId() + "]");
@@ -101,8 +102,6 @@ public class BrokerServer {
                     @Override
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
                         ChannelPipeline channelPipeline = socketChannel.pipeline();
-                        // Netty提供的心跳检测
-                        channelPipeline.addFirst("idle", new IdleStateHandler(0, 0, brokerProperties.getKeepAlive()));
                         // Netty提供的SSL处理
                         if (brokerProperties.isSslEnabled()) {
                             SSLEngine sslEngine = sslContext.newEngine(socketChannel.alloc());
@@ -110,6 +109,10 @@ public class BrokerServer {
                             sslEngine.setNeedClientAuth(true);        // 不需要验证客户端
                             channelPipeline.addLast("ssl", new SslHandler(sslEngine));
                         }
+                        // Netty提供的心跳检测
+                        socketChannel.pipeline().addLast("idleStateHandler", new IdleStateHandler(brokerProperties.getKeepAlive(),0,0, TimeUnit.MINUTES))
+                                .addLast(new IdleReadStateHandler());
+
                         channelPipeline.addLast("decoder", new MqttDecoder());
                         channelPipeline.addLast("encoder", MqttEncoder.INSTANCE);
                         channelPipeline.addLast("broker", brokerHandler);

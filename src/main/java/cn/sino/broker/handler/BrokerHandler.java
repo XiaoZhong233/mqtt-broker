@@ -16,6 +16,7 @@ import io.netty.handler.codec.mqtt.*;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.AttributeKey;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +29,7 @@ import java.util.Map;
  */
 @Component
 @ChannelHandler.Sharable
+@Slf4j
 public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
     @Autowired
     private ProtocolProcess protocolProcess;
@@ -54,6 +56,7 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
         super.channelInactive(ctx);
         String clientId = (String) ctx.channel().attr(AttributeKey.valueOf("clientId")).get();
 //        sessionStoreService.remove(clientId);
+        log.info("client: {} inactive", clientId);
         mqttLoggerService.logInactive(clientId, ctx.channel().id().toString());
         this.channelGroup.remove(ctx.channel());
         this.channelIdMap.remove(brokerProperties.getId() + "_" + ctx.channel().id().asLongText());

@@ -28,6 +28,11 @@ rocketmq:
     relay:
       topic: mqtt_publish
       retries: 3
+  consumer:
+    group: mqtt-relay-consumer
+    relay:
+      topic: mqtt_command
+      retries: 3
 
 
 
@@ -35,8 +40,8 @@ rocketmq:
 mqttwk:
   broker:
     id: mqttwk  # Broker唯一标识
-    host: 127.0.0.1  # 服务启动的IP
-    port: 8885  # 端口号, 默认8885
+#    host: 127.0.0.1  # 服务启动的IP
+    port: 1883  # 端口号, 默认8885
     username: test
     password: test
 #    cluster-on: false  # 是否开启集群模式, 默认false
@@ -44,12 +49,12 @@ mqttwk:
     websocket-enabled: false  # WebSocket是否启用
     websocket-path: /mqtt  # WebSocket访问路径, 默认/mqtt
     mqttPasswordMust: false
-    ssl-enabled: false  # SSL是否启用
+    ssl-enabled: true  # SSL是否启用
     keep-alive: 60  # 心跳时间(秒), 默认60秒
     use-epoll: false  # 是否开启Epoll模式, 默认关闭
     so-backlog: 511  # Socket参数, 存放已完成三次握手请求的队列最大长度, 默认511长度
     so-keep-alive: true  # 是否开启心跳保活机制, 默认开启
     bossGroup-nThreads: 4  # bossGroup线程数, 默认4
     workerGroup-nThreads: 20  # workerGroup线程数, 默认20
-    amqp-enable: true #是否开启消息队列转发, 当前实现为rocketMQ
+    amqp-enable: false #是否开启消息队列转发, 当前实现为rocketMQ
     session-storage-type: caffeine # 存储类型: caffeine 或 redis，默认是 caffeine
