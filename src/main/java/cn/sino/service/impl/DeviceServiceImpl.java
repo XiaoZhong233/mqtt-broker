@@ -3,9 +3,11 @@ package cn.sino.service.impl;
 import cn.sino.broker.protocol.ProtocolProcess;
 import cn.sino.service.DeviceService;
 import cn.sino.service.evt.DeviceActionEvt;
+import cn.sino.service.vo.Message;
 import cn.sino.store.message.DupPubRelMessageStoreService;
 import cn.sino.store.message.DupPublishMessageStoreService;
 import cn.sino.store.subscribe.SubscribeStoreService;
+import com.alibaba.fastjson2.JSON;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -14,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+
+import java.util.Date;
 
 @Service
 @Slf4j
@@ -42,7 +46,7 @@ public class DeviceServiceImpl implements DeviceService {
         MqttFixedHeader mqttFixedHeader = new MqttFixedHeader(
                 MqttMessageType.PUBLISH,  // 消息类型是PUBLISH
                 false,  // DUP flag, 如果是重新发送的消息可以设置为 true
-                MqttQoS.AT_LEAST_ONCE,  // QoS 1
+                MqttQoS.AT_MOST_ONCE,  // QoS 1
                 false,  // RETAIN flag, 是否保留消息
                 0  // 可变头部和负载的剩余长度（此时设置为 0, 会自动计算）
         );
@@ -50,7 +54,12 @@ public class DeviceServiceImpl implements DeviceService {
         MqttPublishVariableHeader variableHeader = new MqttPublishVariableHeader(
                 topicName, 1
         );
-        ByteBuf payload = Unpooled.copiedBuffer(sn.getBytes());
+        Message<String> message = new Message<>();
+        message.setSn(sn);
+        message.setMsg(sn);
+        message.setType("online");
+        message.setTimestamp(new Date().getTime());
+        ByteBuf payload = Unpooled.copiedBuffer(JSON.toJSONBytes(message));
         MqttPublishMessage publishMessage = new MqttPublishMessage(
                 mqttFixedHeader,
                 variableHeader,
@@ -65,7 +74,7 @@ public class DeviceServiceImpl implements DeviceService {
         MqttFixedHeader mqttFixedHeader = new MqttFixedHeader(
                 MqttMessageType.PUBLISH,  // 消息类型是PUBLISH
                 false,  // DUP flag, 如果是重新发送的消息可以设置为 true
-                MqttQoS.AT_LEAST_ONCE,  // QoS 1
+                MqttQoS.AT_MOST_ONCE,  // QoS 1
                 false,  // RETAIN flag, 是否保留消息
                 0  // 可变头部和负载的剩余长度（此时设置为 0, 会自动计算）
         );
@@ -73,7 +82,12 @@ public class DeviceServiceImpl implements DeviceService {
         MqttPublishVariableHeader variableHeader = new MqttPublishVariableHeader(
                 topicName, 1
         );
-        ByteBuf payload = Unpooled.copiedBuffer(sn.getBytes());
+        Message<String> message = new Message<>();
+        message.setSn(sn);
+        message.setMsg(sn);
+        message.setType("offline");
+        message.setTimestamp(new Date().getTime());
+        ByteBuf payload = Unpooled.copiedBuffer(JSON.toJSONBytes(message));
         MqttPublishMessage publishMessage = new MqttPublishMessage(
                 mqttFixedHeader,
                 variableHeader,

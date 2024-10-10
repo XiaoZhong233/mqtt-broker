@@ -83,7 +83,6 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
         mqttLoggerService.logInactive(clientId, ctx.channel().id().toString());
         this.channelGroup.remove(ctx.channel());
         this.channelIdMap.remove(brokerProperties.getId() + "_" + ctx.channel().id().asLongText());
-//        deviceService.offline(ctx.channel(), clientId);
         applicationContext.publishEvent(new DeviceActionEvt(clientId, ctx.channel(), Action.OFFLINE));
         super.channelInactive(ctx);
     }
