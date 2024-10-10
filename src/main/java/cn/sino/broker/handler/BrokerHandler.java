@@ -9,11 +9,16 @@ import cn.sino.broker.config.BrokerProperties;
 import cn.sino.broker.protocol.DisConnect;
 import cn.sino.broker.protocol.ProtocolProcess;
 import cn.sino.common.session.SessionStore;
+import cn.sino.service.DeviceService;
+import cn.sino.service.evt.DeviceActionEvt;
+import cn.sino.service.evt.enums.Action;
 import cn.sino.service.impl.MqttLoggerService;
 import cn.sino.store.message.DupPubRelMessageStoreService;
 import cn.sino.store.message.DupPublishMessageStoreService;
 import cn.sino.store.session.SessionStoreService;
 import cn.sino.store.subscribe.SubscribeStoreService;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.mqtt.*;
@@ -22,6 +27,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 
@@ -53,6 +59,8 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
     DupPublishMessageStoreService dupPublishMessageStoreService;
     @Autowired
     DupPubRelMessageStoreService dupPubRelMessageStoreService;
+    @Autowired
+    ApplicationContext applicationContext;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -63,7 +71,6 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        super.channelInactive(ctx);
         String clientId = (String) ctx.channel().attr(AttributeKey.valueOf("clientId")).get();
         SessionStore sessionStore = sessionStoreService.get(clientId);
         if (sessionStore != null && sessionStore.isCleanSession()) {
@@ -76,7 +83,9 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
         mqttLoggerService.logInactive(clientId, ctx.channel().id().toString());
         this.channelGroup.remove(ctx.channel());
         this.channelIdMap.remove(brokerProperties.getId() + "_" + ctx.channel().id().asLongText());
-
+//        deviceService.offline(ctx.channel(), clientId);
+        applicationContext.publishEvent(new DeviceActionEvt(clientId, ctx.channel(), Action.OFFLINE));
+        super.channelInactive(ctx);
     }
 
     @Override
