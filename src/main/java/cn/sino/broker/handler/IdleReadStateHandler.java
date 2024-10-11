@@ -28,14 +28,6 @@ public class IdleReadStateHandler extends ChannelInboundHandlerAdapter {
                 String channelId = channel.id().asShortText();
                 log.info("channel {} is read idle, close it", channelId);
                 channel.close();
-            } else if (event.state() == IdleState.WRITER_IDLE) {
-                Channel channel = ctx.channel();
-                String channelId = channel.id().asShortText();
-                log.info("channel {} is write idle, close it", channelId);
-            } else if(event.state() == IdleState.ALL_IDLE){
-                Channel channel = ctx.channel();
-                String channelId = channel.id().asShortText();
-                log.info("channel {} is ALL idle, close it", channelId);
             }
         }
     }

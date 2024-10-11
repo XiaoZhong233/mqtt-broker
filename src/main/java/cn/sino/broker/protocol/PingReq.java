@@ -52,7 +52,7 @@ public class PingReq {
                 sessionStoreService.expire(clientId, sessionStore.getExpire());
                 MqttMessage pingRespMessage = MqttMessageFactory.newMessage(
                         new MqttFixedHeader(MqttMessageType.PINGRESP, false, MqttQoS.AT_MOST_ONCE, false, 0), null, null);
-                loggerService.info("PINGREQ - clientId: {}", clientId);
+                loggerService.debug("PINGREQ - clientId: {}", clientId);
                 channel.writeAndFlush(pingRespMessage);
             }
         }

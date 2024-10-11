@@ -105,8 +105,8 @@ public class BrokerServer {
                         // Netty提供的SSL处理
                         if (brokerProperties.isSslEnabled()) {
                             SSLEngine sslEngine = sslContext.newEngine(socketChannel.alloc());
-                            sslEngine.setUseClientMode(false);        // 服务端模式
-                            sslEngine.setNeedClientAuth(true);        // 不需要验证客户端
+                            sslEngine.setUseClientMode(false);
+                            sslEngine.setNeedClientAuth(true);
                             channelPipeline.addLast("ssl", new SslHandler(sslEngine));
                         }
                         // Netty提供的心跳检测
@@ -142,8 +142,8 @@ public class BrokerServer {
                         // Netty提供的SSL处理
                         if (brokerProperties.isSslEnabled()) {
                             SSLEngine sslEngine = sslContext.newEngine(socketChannel.alloc());
-                            sslEngine.setUseClientMode(false);        // 服务端模式
-                            sslEngine.setNeedClientAuth(true);        // 不需要验证客户端
+                            sslEngine.setUseClientMode(false);
+                            sslEngine.setNeedClientAuth(true);
                             channelPipeline.addLast("ssl", new SslHandler(sslEngine));
                         }
                         // 将请求和应答消息编码或解码为HTTP消息
