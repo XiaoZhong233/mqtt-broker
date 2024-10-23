@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class DeviceActionEvt {
-    String sn;
+    String clientId;
     Channel channel;
     Action action;
 }

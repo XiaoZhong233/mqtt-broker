@@ -4,7 +4,7 @@ import io.netty.channel.Channel;
 
 public interface DeviceService {
 
-    void online(Channel channel, String sn);
+    void online(Channel channel, String clientId);
 
-    void offline(Channel channel, String sn);
+    void offline(Channel channel, String clientId);
 }

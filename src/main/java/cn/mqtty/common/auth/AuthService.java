@@ -2,7 +2,7 @@
  * Copyright (c) 2018, Mr.Wang (recallcode@aliyun.com) All rights reserved.
  */
 
-package cn.mqtty.auth.service;
+package cn.mqtty.common.auth;
 
 import cn.hutool.core.util.StrUtil;
 import cn.mqtty.broker.config.BrokerProperties;

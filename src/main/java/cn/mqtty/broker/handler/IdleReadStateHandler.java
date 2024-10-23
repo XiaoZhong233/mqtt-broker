@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 
 
 @Slf4j
-//@Component
 @ChannelHandler.Sharable
 public class IdleReadStateHandler extends ChannelInboundHandlerAdapter {
 

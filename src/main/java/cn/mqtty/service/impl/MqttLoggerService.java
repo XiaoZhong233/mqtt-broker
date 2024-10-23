@@ -65,13 +65,6 @@ public class MqttLoggerService {
         }
     }
 
-//    private String formatMqttMsg(MqttPublishMessage mqttPublishMessage){
-//        MqttFixedHeader mqttFixedHeaderInfo = mqttPublishMessage.fixedHeader();
-//        MqttQoS qos = mqttFixedHeaderInfo.qosLevel();
-//        MqttPublishVariableHeader variableHeader = mqttPublishMessage.variableHeader();
-//        String topicName = variableHeader.topicName();
-//        return String.format("[Qos]: %s, [Topic]: %s, [Msg]: (%s)", qos.value(), topicName, JsonFlattener.flattenJson(mqttPublishMessage));
-//    }
 
     private String formatMqttMsg(int qos, String topic, String msg){
         return String.format("[Qos]: %s, [Topic]: %s, [Msg]: (%s)", qos, topic, msg);
