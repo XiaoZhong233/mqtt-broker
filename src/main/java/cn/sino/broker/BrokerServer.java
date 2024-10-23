@@ -140,12 +140,12 @@ public class BrokerServer {
                         // Netty提供的心跳检测
                         channelPipeline.addFirst("idle", new IdleStateHandler(0, 0, brokerProperties.getKeepAlive()));
                         // Netty提供的SSL处理
-                        if (brokerProperties.isSslEnabled()) {
-                            SSLEngine sslEngine = sslContext.newEngine(socketChannel.alloc());
-                            sslEngine.setUseClientMode(false);
-                            sslEngine.setNeedClientAuth(true);
-                            channelPipeline.addLast("ssl", new SslHandler(sslEngine));
-                        }
+//                        if (brokerProperties.isSslEnabled()) {
+//                            SSLEngine sslEngine = sslContext.newEngine(socketChannel.alloc());
+//                            sslEngine.setUseClientMode(false);
+//                            sslEngine.setNeedClientAuth(true);
+//                            channelPipeline.addLast("ssl", new SslHandler(sslEngine));
+//                        }
                         // 将请求和应答消息编码或解码为HTTP消息
                         channelPipeline.addLast("http-codec", new HttpServerCodec());
                         // 将HTTP消息的多个部分合成一条完整的HTTP消息
