@@ -98,25 +98,25 @@ public class Subscribe {
 			MqttQoS respQoS = retainMessageStore.getMqttQoS() > mqttQoS.value() ? mqttQoS : MqttQoS.valueOf(retainMessageStore.getMqttQoS());
 			if (respQoS == MqttQoS.AT_MOST_ONCE) {
 				MqttPublishMessage publishMessage = (MqttPublishMessage) MqttMessageFactory.newMessage(
-					new MqttFixedHeader(MqttMessageType.PUBLISH, false, respQoS, false, 0),
+					new MqttFixedHeader(MqttMessageType.PUBLISH, false, respQoS, true, 0),
 					new MqttPublishVariableHeader(retainMessageStore.getTopic(), 0), Unpooled.buffer().writeBytes(retainMessageStore.getMessageBytes()));
-				loggerService.info("PUBLISH - clientId: {}, topic: {}, Qos: {}", (String) channel.attr(AttributeKey.valueOf("clientId")).get(), retainMessageStore.getTopic(), respQoS.value());
+				loggerService.info("RETAIN MSG PUBLISH - clientId: {}, topic: {}, Qos: {}", (String) channel.attr(AttributeKey.valueOf("clientId")).get(), retainMessageStore.getTopic(), respQoS.value());
 				channel.writeAndFlush(publishMessage);
 			}
 			if (respQoS == MqttQoS.AT_LEAST_ONCE) {
 				int messageId = messageIdService.getNextMessageId();
 				MqttPublishMessage publishMessage = (MqttPublishMessage) MqttMessageFactory.newMessage(
-					new MqttFixedHeader(MqttMessageType.PUBLISH, false, respQoS, false, 0),
+					new MqttFixedHeader(MqttMessageType.PUBLISH, false, respQoS, true, 0),
 					new MqttPublishVariableHeader(retainMessageStore.getTopic(), messageId), Unpooled.buffer().writeBytes(retainMessageStore.getMessageBytes()));
-				loggerService.info("PUBLISH - clientId: {}, topic: {}, Qos: {}, messageId: {}", (String) channel.attr(AttributeKey.valueOf("clientId")).get(), retainMessageStore.getTopic(), respQoS.value(), messageId);
+				loggerService.info("RETAIN MSG PUBLISH - clientId: {}, topic: {}, Qos: {}, messageId: {}", (String) channel.attr(AttributeKey.valueOf("clientId")).get(), retainMessageStore.getTopic(), respQoS.value(), messageId);
 				channel.writeAndFlush(publishMessage);
 			}
 			if (respQoS == MqttQoS.EXACTLY_ONCE) {
 				int messageId = messageIdService.getNextMessageId();
 				MqttPublishMessage publishMessage = (MqttPublishMessage) MqttMessageFactory.newMessage(
-					new MqttFixedHeader(MqttMessageType.PUBLISH, false, respQoS, false, 0),
+					new MqttFixedHeader(MqttMessageType.PUBLISH, false, respQoS, true, 0),
 					new MqttPublishVariableHeader(retainMessageStore.getTopic(), messageId), Unpooled.buffer().writeBytes(retainMessageStore.getMessageBytes()));
-				loggerService.info("PUBLISH - clientId: {}, topic: {}, Qos: {}, messageId: {}", (String) channel.attr(AttributeKey.valueOf("clientId")).get(), retainMessageStore.getTopic(), respQoS.value(), messageId);
+				loggerService.info("RETAIN MSG PUBLISH - clientId: {}, topic: {}, Qos: {}, messageId: {}", (String) channel.attr(AttributeKey.valueOf("clientId")).get(), retainMessageStore.getTopic(), respQoS.value(), messageId);
 				channel.writeAndFlush(publishMessage);
 			}
 		});

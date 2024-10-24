@@ -5,6 +5,7 @@
 package cn.mqtty.broker.handler;
 
 
+import cn.hutool.core.util.StrUtil;
 import cn.mqtty.broker.config.BrokerProperties;
 import cn.mqtty.broker.protocol.ProtocolProcess;
 import cn.mqtty.common.session.SessionStore;
@@ -79,7 +80,10 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
         mqttLoggerService.logInactive(clientId, ctx.channel().id().toString());
         this.channelGroup.remove(ctx.channel());
         this.channelIdMap.remove(brokerProperties.getId() + "_" + ctx.channel().id().asLongText());
-        applicationContext.publishEvent(new DeviceActionEvt(clientId, ctx.channel(), Action.OFFLINE));
+        String sn = (String) ctx.channel().attr(AttributeKey.valueOf("sn")).get();
+        if(StrUtil.isNotBlank(sn)){
+            applicationContext.publishEvent(new DeviceActionEvt(clientId, sn, ctx.channel(), Action.OFFLINE));
+        }
         super.channelInactive(ctx);
     }
 

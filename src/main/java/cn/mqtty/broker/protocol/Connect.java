@@ -14,7 +14,6 @@ import cn.mqtty.common.message.IDupPublishMessageStoreService;
 import cn.mqtty.common.session.ISessionStoreService;
 import cn.mqtty.common.session.SessionStore;
 import cn.mqtty.common.subscribe.ISubscribeStoreService;
-import cn.mqtty.service.evt.DeviceActionEvt;
 import cn.mqtty.service.evt.enums.Action;
 import cn.mqtty.service.impl.MqttLoggerService;
 import io.netty.buffer.Unpooled;
@@ -56,11 +55,10 @@ public class Connect {
 
     private final Map<String, ChannelId> channelIdMap;
 
-    private final ApplicationContext applicationContext;
 
     public Connect(ISessionStoreService sessionStoreService, ISubscribeStoreService subscribeStoreService, IDupPublishMessageStoreService dupPublishMessageStoreService, IDupPubRelMessageStoreService dupPubRelMessageStoreService,
                    IAuthService authService, BrokerProperties brokerProperties, ChannelGroup channelGroup,
-                   Map<String, ChannelId> channelIdMap, MqttLoggerService mqttLoggerService, ApplicationContext applicationContext) {
+                   Map<String, ChannelId> channelIdMap, MqttLoggerService mqttLoggerService) {
         this.sessionStoreService = sessionStoreService;
         this.subscribeStoreService = subscribeStoreService;
         this.dupPublishMessageStoreService = dupPublishMessageStoreService;
@@ -70,7 +68,6 @@ public class Connect {
         this.channelGroup = channelGroup;
         this.channelIdMap = channelIdMap;
         this.loggerService = mqttLoggerService;
-        this.applicationContext = applicationContext;
     }
 
     public void processConnect(Channel channel, MqttConnectMessage msg) {
@@ -172,7 +169,6 @@ public class Connect {
                 new MqttConnAckVariableHeader(MqttConnectReturnCode.CONNECTION_ACCEPTED, sessionPresent), null);
         channel.writeAndFlush(okResp);
         loggerService.info("CONNECT - clientId: {}, cleanSession: {}", msg.payload().clientIdentifier(), msg.variableHeader().isCleanSession());
-        applicationContext.publishEvent(new DeviceActionEvt(msg.payload().clientIdentifier(), channel, Action.ONLINE));
         // 如果cleanSession为0, 需要重发同一clientId存储的未完成的QoS1和QoS2的DUP消息
         if (!msg.variableHeader().isCleanSession()) {
             List<DupPublishMessageStore> dupPublishMessageStoreList = dupPublishMessageStoreService.get(msg.payload().clientIdentifier());

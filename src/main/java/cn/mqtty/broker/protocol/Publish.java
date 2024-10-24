@@ -5,23 +5,33 @@
 package cn.mqtty.broker.protocol;
 
 
+import cn.hutool.core.util.StrUtil;
 import cn.mqtty.amqp.InternalMessage;
 import cn.mqtty.amqp.RelayService;
 import cn.mqtty.broker.config.BrokerProperties;
+import cn.mqtty.broker.msg.ActionMsg;
 import cn.mqtty.common.message.*;
 import cn.mqtty.common.session.ISessionStoreService;
 import cn.mqtty.common.session.SessionStore;
 import cn.mqtty.common.subscribe.ISubscribeStoreService;
 import cn.mqtty.common.subscribe.SubscribeStore;
+import cn.mqtty.service.evt.DeviceActionEvt;
+import cn.mqtty.service.evt.enums.Action;
 import cn.mqtty.service.impl.MqttLoggerService;
+import com.fasterxml.jackson.core.exc.StreamReadException;
+import com.fasterxml.jackson.databind.DatabindException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelId;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.mqtt.*;
 import io.netty.util.AttributeKey;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +39,7 @@ import java.util.Map;
  * PUBLISH连接处理
  */
 @Component
+@Slf4j
 public class Publish {
 
 //    private static final Logger LOGGER = LoggerFactory.getLogger(Publish.class);
@@ -52,9 +63,13 @@ public class Publish {
 
     private BrokerProperties brokerProperties;
 
+    private final ApplicationContext applicationContext;
+
+    ObjectMapper mapper = new ObjectMapper();
+
     public Publish(ISessionStoreService sessionStoreService, ISubscribeStoreService subscribeStoreService, IMessageIdService messageIdService, IRetainMessageStoreService retainMessageStoreService, IDupPublishMessageStoreService dupPublishMessageStoreService,
                    ChannelGroup channelGroup, Map<String, ChannelId> channelIdMap, BrokerProperties brokerProperties,
-                   MqttLoggerService mqttLoggerService, RelayService relayService) {
+                   MqttLoggerService mqttLoggerService, RelayService relayService, ApplicationContext applicationContext) {
         this.sessionStoreService = sessionStoreService;
         this.subscribeStoreService = subscribeStoreService;
         this.messageIdService = messageIdService;
@@ -66,6 +81,7 @@ public class Publish {
         this.brokerProperties = brokerProperties;
         this.loggerService = mqttLoggerService;
         this.relayService = relayService;
+        this.applicationContext = applicationContext;
     }
 
     public void processPublish(Channel channel, MqttPublishMessage msg) {
@@ -97,6 +113,24 @@ public class Publish {
                     .setMqttQoS(msg.fixedHeader().qosLevel().value()).setMessageBytes(messageBytes)
                     .setDup(false).setRetain(false).setClientId(clientId);
             relayService.send(internalMessage);
+            //特殊处理登录报文
+            String topicName = msg.variableHeader().topicName();
+            if(topicName.startsWith("$action/operation")){
+                try {
+                    ActionMsg actionMsg = mapper.readValue(messageBytes, ActionMsg.class);
+                    if(StrUtil.isNotBlank(actionMsg.getSn())){
+                        if(actionMsg.getMsg().get("action").asInt()==1){
+                            applicationContext.publishEvent(new DeviceActionEvt(clientId, actionMsg.getSn(), channel, Action.ONLINE));
+                            channel.attr(AttributeKey.valueOf("sn")).set(actionMsg.getSn());
+                        } else if (actionMsg.getMsg().get("action").asInt()==0) {
+                            applicationContext.publishEvent(new DeviceActionEvt(clientId, actionMsg.getSn(), channel, Action.OFFLINE));
+                        }
+                    }
+                }catch (Exception e){
+                    log.error("设备登录报文解析错误! clientId:{}, 错误原因: {}, ", clientId, e.getMessage(), e);
+                }
+
+            }
 //            internalCommunication.internalSend(internalMessage);
             this.sendPublishMessage(msg.variableHeader().topicName(), msg.fixedHeader().qosLevel(), messageBytes, false, false);
             this.sendPubAckMessage(channel, msg.variableHeader().packetId());

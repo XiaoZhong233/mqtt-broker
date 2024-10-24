@@ -36,13 +36,13 @@ public class DeviceServiceImpl implements DeviceService {
         log.info("设备{}事件：Action: {}, channel:{}", deviceActionEvt.getClientId(), deviceActionEvt.getAction(),
                 deviceActionEvt.getChannel().id().toString());
         switch (deviceActionEvt.getAction()){
-            case ONLINE -> this.online(deviceActionEvt.getChannel(), deviceActionEvt.getClientId());
-            case OFFLINE -> this.offline(deviceActionEvt.getChannel(), deviceActionEvt.getClientId());
+            case ONLINE -> this.online(deviceActionEvt.getChannel(), deviceActionEvt.getSn(), deviceActionEvt.getClientId());
+            case OFFLINE -> this.offline(deviceActionEvt.getChannel(), deviceActionEvt.getSn(), deviceActionEvt.getClientId());
         }
     }
 
     @Override
-    public void online(Channel channel, String clientId) {
+    public void online(Channel channel, String sn, String clientId) {
         MqttFixedHeader mqttFixedHeader = new MqttFixedHeader(
                 MqttMessageType.PUBLISH,  // 消息类型是PUBLISH
                 false,  // DUP flag, 如果是重新发送的消息可以设置为 true
@@ -55,7 +55,7 @@ public class DeviceServiceImpl implements DeviceService {
                 topicName, 1
         );
         Message<String> message = new Message<>();
-        message.setSn(clientId);
+        message.setSn(sn);
         message.setMsg(clientId);
         message.setType("online");
         message.setTimestamp(new Date().getTime());
@@ -70,7 +70,7 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public void offline(Channel channel, String clientId) {
+    public void offline(Channel channel, String sn, String clientId) {
         MqttFixedHeader mqttFixedHeader = new MqttFixedHeader(
                 MqttMessageType.PUBLISH,  // 消息类型是PUBLISH
                 false,  // DUP flag, 如果是重新发送的消息可以设置为 true
@@ -83,7 +83,7 @@ public class DeviceServiceImpl implements DeviceService {
                 topicName, 1
         );
         Message<String> message = new Message<>();
-        message.setSn(clientId);
+        message.setSn(sn);
         message.setMsg(clientId);
         message.setType("offline");
         message.setTimestamp(new Date().getTime());
