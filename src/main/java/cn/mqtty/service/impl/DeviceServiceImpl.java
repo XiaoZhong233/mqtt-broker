@@ -1,5 +1,8 @@
 package cn.mqtty.service.impl;
 
+import cn.mqtty.amqp.InternalMessage;
+import cn.mqtty.amqp.RelayService;
+import cn.mqtty.broker.config.BrokerProperties;
 import cn.mqtty.broker.protocol.ProtocolProcess;
 import cn.mqtty.service.DeviceService;
 import cn.mqtty.service.evt.DeviceActionEvt;
@@ -30,6 +33,10 @@ public class DeviceServiceImpl implements DeviceService {
     DupPubRelMessageStoreService dupPubRelMessageStoreService;
     @Autowired
     private ProtocolProcess protocolProcess;
+    @Autowired
+    RelayService relayService;
+    @Autowired
+    BrokerProperties brokerProperties;
 
     @EventListener
     public void handleActionEvt(DeviceActionEvt deviceActionEvt){
@@ -53,6 +60,17 @@ public class DeviceServiceImpl implements DeviceService {
         String topicName = "$online/operation";
         MqttPublishVariableHeader variableHeader = new MqttPublishVariableHeader(
                 topicName, 1
+        );
+        MqttConnectVariableHeader connectVariableHeader = new MqttConnectVariableHeader(
+                "MQTT",  // 协议名
+                4,  // 协议版本号
+                false,
+                false,
+                false,
+                1,
+                false,
+                false,
+                60  // Keep-alive 超时（秒）
         );
         Message<String> message = new Message<>();
         message.setSn(sn);
