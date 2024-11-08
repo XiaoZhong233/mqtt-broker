@@ -40,7 +40,7 @@ public class DeviceServiceImpl implements DeviceService {
 
     @EventListener
     public void handleActionEvt(DeviceActionEvt deviceActionEvt){
-        log.info("设备{}事件：Action: {}, channel:{}", deviceActionEvt.getClientId(), deviceActionEvt.getAction(),
+        log.info("设备{}事件：Action: {}, channel:{}", deviceActionEvt.getSn(), deviceActionEvt.getAction(),
                 deviceActionEvt.getChannel().id().toString());
         switch (deviceActionEvt.getAction()){
             case ONLINE -> this.online(deviceActionEvt.getChannel(), deviceActionEvt.getSn(), deviceActionEvt.getClientId());

@@ -18,11 +18,11 @@ public class IdleReadStateHandler extends ChannelInboundHandlerAdapter {
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if(evt instanceof IdleStateEvent){
             IdleStateEvent event = (IdleStateEvent) evt;
-            if(event.state() == IdleState.READER_IDLE){
+            if(event.state() == IdleState.ALL_IDLE){
                 //断开连接
                 Channel channel = ctx.channel();
                 String channelId = channel.id().asShortText();
-                log.info("channel {} is read idle, close it", channelId);
+                log.info("channel {} is all idle, close it", channelId);
                 channel.close();
             }
         }

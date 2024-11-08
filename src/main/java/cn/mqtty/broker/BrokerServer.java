@@ -98,7 +98,7 @@ public class BrokerServer {
                             channelPipeline.addLast("ssl", new SslHandler(sslEngine));
                         }
                         // Netty提供的心跳检测
-                        socketChannel.pipeline().addLast("idleStateHandler", new IdleStateHandler(0,0,brokerProperties.getKeepAlive(), TimeUnit.SECONDS))
+                        socketChannel.pipeline().addLast("idleStateHandler", new IdleStateHandler(0,0,120, TimeUnit.SECONDS))
                                 .addLast(new IdleReadStateHandler());
 
                         channelPipeline.addLast("decoder", new MqttDecoder());
