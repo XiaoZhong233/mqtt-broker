@@ -19,7 +19,7 @@ public class BrokerProperties {
     private String websocketPath = "/mqtt"; // WebSocket访问路径, 默认/mqtt
     private boolean sslEnabled = true; // SSL是否启用
 //    private String sslPassword; // SSL密钥文件密码
-    private int keepAlive = 60; // 心跳时间(秒), 默认60秒
+    private int keepAlive = 120; // 心跳时间(秒), 默认60秒
     private boolean useEpoll = false; // 是否开启Epoll模式
     private int soBacklog = 511; // Socket参数, 最大队列长度
     private boolean soKeepAlive = true; // 是否开启心跳保活机制

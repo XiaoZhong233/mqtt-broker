@@ -142,14 +142,14 @@ public class Connect {
             dupPublishMessageStoreService.removeByClient(msg.payload().clientIdentifier());
             dupPubRelMessageStoreService.removeByClient(msg.payload().clientIdentifier());
         }
-        // 处理连接心跳包
-        int expire = 0;
+        // 处理连接心跳包，会话过期时间统一设置成120秒
+        int expire = Math.round(brokerProperties.getKeepAlive() * 1.5f);
         if (msg.variableHeader().keepAliveTimeSeconds() > 0) {
-            if (channel.pipeline().names().contains("idle")) {
-                channel.pipeline().remove("idle");
-            }
-            expire = Math.round(msg.variableHeader().keepAliveTimeSeconds() * 1.5f);
-            channel.pipeline().addFirst("idle", new IdleStateHandler(0, 0, expire));
+//            if (channel.pipeline().names().contains("idle")) {
+//                channel.pipeline().remove("idle");
+//            }
+//            expire = Math.round(msg.variableHeader().keepAliveTimeSeconds() * 1.5f);
+//            channel.pipeline().addFirst("idle", new IdleStateHandler(0, 0, expire));
         }
         // 处理遗嘱信息
         SessionStore sessionStore = new SessionStore(brokerProperties.getId(), msg.payload().clientIdentifier(), channel.id().asLongText(), msg.variableHeader().isCleanSession(), null, expire);

@@ -41,6 +41,8 @@ public class BrokerServer {
     private BrokerProperties brokerProperties;
     @Autowired
     BrokerHandler brokerHandler;
+    @Autowired
+    IdleReadStateHandler idleReadStateHandler;
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private SslContext sslContext;
@@ -98,8 +100,9 @@ public class BrokerServer {
                             channelPipeline.addLast("ssl", new SslHandler(sslEngine));
                         }
                         // Netty提供的心跳检测
-                        socketChannel.pipeline().addLast("idleStateHandler", new IdleStateHandler(0,0,120, TimeUnit.SECONDS))
-                                .addLast(new IdleReadStateHandler());
+                        socketChannel.pipeline().addLast("idleStateHandler", new IdleStateHandler(0,0,
+                                        brokerProperties.getKeepAlive(), TimeUnit.SECONDS))
+                                .addLast(idleReadStateHandler);
 
                         channelPipeline.addLast("decoder", new MqttDecoder());
                         channelPipeline.addLast("encoder", MqttEncoder.INSTANCE);

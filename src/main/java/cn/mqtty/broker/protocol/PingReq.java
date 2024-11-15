@@ -14,6 +14,7 @@ import io.netty.channel.ChannelId;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.mqtt.*;
 import io.netty.util.AttributeKey;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -22,6 +23,7 @@ import java.util.Map;
  * PINGREQ连接处理
  */
 @Component
+@Slf4j
 public class PingReq {
 
 //    private static final Logger LOGGER = LoggerFactory.getLogger(PingReq.class);
@@ -50,7 +52,7 @@ public class PingReq {
                 sessionStoreService.expire(clientId, sessionStore.getExpire());
                 MqttMessage pingRespMessage = MqttMessageFactory.newMessage(
                         new MqttFixedHeader(MqttMessageType.PINGRESP, false, MqttQoS.AT_MOST_ONCE, false, 0), null, null);
-                loggerService.debug("PINGREQ - clientId: {}", clientId);
+                log.info("PINGREQ - clientId: {}", clientId);
                 channel.writeAndFlush(pingRespMessage);
             }
         }

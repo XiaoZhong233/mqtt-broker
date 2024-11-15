@@ -66,24 +66,45 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
         this.channelIdMap.put(brokerProperties.getId() + "_" + ctx.channel().id().asLongText(), ctx.channel().id());
     }
 
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        String clientId = (String) ctx.channel().attr(AttributeKey.valueOf("clientId")).get();
+    private void closeProcess(Channel channel){
+        String clientId = (String)channel.attr(AttributeKey.valueOf("clientId")).get();
         SessionStore sessionStore = sessionStoreService.get(clientId);
         if (sessionStore != null && sessionStore.isCleanSession()) {
             subscribeStoreService.removeForClient(clientId);
             dupPublishMessageStoreService.removeByClient(clientId);
             dupPubRelMessageStoreService.removeByClient(clientId);
         }
-        mqttLoggerService.info("DISCONNECT - clientId: {}, cleanSession: {}", clientId, sessionStore.isCleanSession());
+        mqttLoggerService.info("DISCONNECT - clientId: {}, cleanSession: {}", clientId,
+                sessionStore!=null?sessionStore.isCleanSession():"null");
         sessionStoreService.remove(clientId);
-        mqttLoggerService.logInactive(clientId, ctx.channel().id().toString());
-        this.channelGroup.remove(ctx.channel());
-        this.channelIdMap.remove(brokerProperties.getId() + "_" + ctx.channel().id().asLongText());
-        String sn = (String) ctx.channel().attr(AttributeKey.valueOf("sn")).get();
+        mqttLoggerService.logInactive(clientId, channel.id().toString());
+        this.channelGroup.remove(channel);
+        this.channelIdMap.remove(brokerProperties.getId() + "_" + channel.id().asLongText());
+        String sn = (String) channel.attr(AttributeKey.valueOf("sn")).get();
         if(StrUtil.isNotBlank(sn)){
-            applicationContext.publishEvent(new DeviceActionEvt(clientId, sn, ctx.channel(), Action.OFFLINE));
+            applicationContext.publishEvent(new DeviceActionEvt(clientId, sn, channel, Action.OFFLINE));
         }
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+//        String clientId = (String) ctx.channel().attr(AttributeKey.valueOf("clientId")).get();
+//        SessionStore sessionStore = sessionStoreService.get(clientId);
+//        if (sessionStore != null && sessionStore.isCleanSession()) {
+//            subscribeStoreService.removeForClient(clientId);
+//            dupPublishMessageStoreService.removeByClient(clientId);
+//            dupPubRelMessageStoreService.removeByClient(clientId);
+//        }
+//        mqttLoggerService.info("DISCONNECT - clientId: {}, cleanSession: {}", clientId, sessionStore.isCleanSession());
+//        sessionStoreService.remove(clientId);
+//        mqttLoggerService.logInactive(clientId, ctx.channel().id().toString());
+//        this.channelGroup.remove(ctx.channel());
+//        this.channelIdMap.remove(brokerProperties.getId() + "_" + ctx.channel().id().asLongText());
+//        String sn = (String) ctx.channel().attr(AttributeKey.valueOf("sn")).get();
+//        if(StrUtil.isNotBlank(sn)){
+//            applicationContext.publishEvent(new DeviceActionEvt(clientId, sn, ctx.channel(), Action.OFFLINE));
+//        }
+        closeProcess(ctx.channel());
         super.channelInactive(ctx);
     }
 
@@ -154,30 +175,34 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         if (cause instanceof IOException) {
             // 远程主机强迫关闭了一个现有的连接的异常
-            protocolProcess.disConnect().processDisConnect(ctx.channel());
+            log.error("IO异常：远程主机强迫关闭了一个现有的连接的异常.{}",cause.getMessage(),cause);
+//            protocolProcess.disConnect().processDisConnect(ctx.channel());
+            closeProcess(ctx.channel());
             ctx.close();
         } else {
+            log.error("异常:{}",cause.getMessage(), cause);
             super.exceptionCaught(ctx, cause);
         }
     }
 
-    @Override
-    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof IdleStateEvent idleStateEvent) {
-            if (idleStateEvent.state() == IdleState.ALL_IDLE) {
-                Channel channel = ctx.channel();
-                String clientId = (String) channel.attr(AttributeKey.valueOf("clientId")).get();
-                // 发送遗嘱消息
-                if (this.protocolProcess.getSessionStoreService().containsKey(clientId)) {
-                    SessionStore sessionStore = this.protocolProcess.getSessionStoreService().get(clientId);
-                    if (sessionStore.getWillMessage() != null) {
-                        this.protocolProcess.publish().processPublish(ctx.channel(), sessionStore.getWillMessage());
-                    }
-                }
-                ctx.close();
-            }
-        } else {
-            super.userEventTriggered(ctx, evt);
-        }
-    }
+//    @Override
+//    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+//        if (evt instanceof IdleStateEvent idleStateEvent) {
+//            if (idleStateEvent.state() == IdleState.ALL_IDLE) {
+//                Channel channel = ctx.channel();
+//                String clientId = (String) channel.attr(AttributeKey.valueOf("clientId")).get();
+//                // 发送遗嘱消息
+//                if (this.protocolProcess.getSessionStoreService().containsKey(clientId)) {
+//                    SessionStore sessionStore = this.protocolProcess.getSessionStoreService().get(clientId);
+//                    if (sessionStore.getWillMessage() != null) {
+//                        this.protocolProcess.publish().processPublish(ctx.channel(), sessionStore.getWillMessage());
+//                    }
+//                }
+//                log.info("客户端{}会话过期", clientId);
+//                ctx.close();
+//            }
+//        } else {
+//            super.userEventTriggered(ctx, evt);
+//        }
+//    }
 }
