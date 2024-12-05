@@ -94,6 +94,19 @@ public class Publish {
                 sessionStoreService.expire(clientId, sessionStore.getExpire());
             }
         }
+        String topicName = msg.variableHeader().topicName();
+        if(!topicName.startsWith("$action/operation")){
+            Object o = channel.attr(AttributeKey.valueOf("sn")).get();
+            String sn = "Unknown";
+            if(clientId.startsWith("dev-reg-service")){
+                sn = "平台";
+            }
+            if(o!=null){
+                sn = (String) o;
+            }
+            log.info("[PUBLISH] sn:[{}]-clientId: [{}], channel:[{}], topic: {}, Qos: {}", sn,clientId, channel.id(),
+                    msg.variableHeader().topicName(), msg.fixedHeader().qosLevel().value());
+        }
         // QoS=0
         if (msg.fixedHeader().qosLevel() == MqttQoS.AT_MOST_ONCE) {
             byte[] messageBytes = new byte[msg.payload().readableBytes()];
@@ -114,7 +127,6 @@ public class Publish {
                     .setDup(false).setRetain(false).setClientId(clientId);
             relayService.send(internalMessage);
             //特殊处理登录报文
-            String topicName = msg.variableHeader().topicName();
             if(topicName.startsWith("$action/operation")){
                 try {
                     ActionMsg actionMsg = mapper.readValue(messageBytes, ActionMsg.class);
@@ -171,7 +183,7 @@ public class Publish {
                     MqttPublishMessage publishMessage = (MqttPublishMessage) MqttMessageFactory.newMessage(
                             new MqttFixedHeader(MqttMessageType.PUBLISH, dup, respQoS, retain, 0),
                             new MqttPublishVariableHeader(topic, 0), Unpooled.buffer().writeBytes(messageBytes));
-                    loggerService.info("PUBLISH - clientId: {}, topic: {}, Qos: {}", subscribeStore.getClientId(), topic, respQoS.value());
+//                    loggerService.info("PUBLISH - clientId: {}, topic: {}, Qos: {}", subscribeStore.getClientId(), topic, respQoS.value());
                     SessionStore sessionStore = sessionStoreService.get(subscribeStore.getClientId());
                     ChannelId channelId = channelIdMap.get(sessionStore.getBrokerId() + "_" + sessionStore.getChannelId());
                     if (channelId != null) {
@@ -184,7 +196,7 @@ public class Publish {
                     MqttPublishMessage publishMessage = (MqttPublishMessage) MqttMessageFactory.newMessage(
                             new MqttFixedHeader(MqttMessageType.PUBLISH, dup, respQoS, retain, 0),
                             new MqttPublishVariableHeader(topic, messageId), Unpooled.buffer().writeBytes(messageBytes));
-                    loggerService.info("PUBLISH - clientId: {}, topic: {}, Qos: {}, messageId: {}", subscribeStore.getClientId(), topic, respQoS.value(), messageId);
+//                    loggerService.info("PUBLISH - clientId: {}, topic: {}, Qos: {}, messageId: {}", subscribeStore.getClientId(), topic, respQoS.value(), messageId);
                     DupPublishMessageStore dupPublishMessageStore = new DupPublishMessageStore().setClientId(subscribeStore.getClientId())
                             .setTopic(topic).setMqttQoS(respQoS.value()).setMessageBytes(messageBytes).setMessageId(messageId);
                     dupPublishMessageStoreService.put(subscribeStore.getClientId(), dupPublishMessageStore);
@@ -200,7 +212,7 @@ public class Publish {
                     MqttPublishMessage publishMessage = (MqttPublishMessage) MqttMessageFactory.newMessage(
                             new MqttFixedHeader(MqttMessageType.PUBLISH, dup, respQoS, retain, 0),
                             new MqttPublishVariableHeader(topic, messageId), Unpooled.buffer().writeBytes(messageBytes));
-                    loggerService.info("PUBLISH - clientId: {}, topic: {}, Qos: {}, messageId: {}", subscribeStore.getClientId(), topic, respQoS.value(), messageId);
+//                    loggerService.info("PUBLISH - clientId: {}, topic: {}, Qos: {}, messageId: {}", subscribeStore.getClientId(), topic, respQoS.value(), messageId);
                     DupPublishMessageStore dupPublishMessageStore = new DupPublishMessageStore().setClientId(subscribeStore.getClientId())
                             .setTopic(topic).setMqttQoS(respQoS.value()).setMessageBytes(messageBytes).setMessageId(messageId);
                     dupPublishMessageStoreService.put(subscribeStore.getClientId(), dupPublishMessageStore);

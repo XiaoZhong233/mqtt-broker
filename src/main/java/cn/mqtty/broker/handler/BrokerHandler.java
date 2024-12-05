@@ -62,25 +62,26 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
+        log.info("channel[{}]连接", ctx.channel().id());
         this.channelGroup.add(ctx.channel());
         this.channelIdMap.put(brokerProperties.getId() + "_" + ctx.channel().id().asLongText(), ctx.channel().id());
     }
 
     private void closeProcess(Channel channel){
         String clientId = (String)channel.attr(AttributeKey.valueOf("clientId")).get();
+        String sn = (String) channel.attr(AttributeKey.valueOf("sn")).get();
         SessionStore sessionStore = sessionStoreService.get(clientId);
         if (sessionStore != null && sessionStore.isCleanSession()) {
             subscribeStoreService.removeForClient(clientId);
             dupPublishMessageStoreService.removeByClient(clientId);
             dupPubRelMessageStoreService.removeByClient(clientId);
         }
-        mqttLoggerService.info("DISCONNECT - clientId: {}, cleanSession: {}", clientId,
+        mqttLoggerService.info("DISCONNECT - clientId: {}, sn:{}, cleanSession: {}", clientId, sn,
                 sessionStore!=null?sessionStore.isCleanSession():"null");
         sessionStoreService.remove(clientId);
         mqttLoggerService.logInactive(clientId, channel.id().toString());
         this.channelGroup.remove(channel);
         this.channelIdMap.remove(brokerProperties.getId() + "_" + channel.id().asLongText());
-        String sn = (String) channel.attr(AttributeKey.valueOf("sn")).get();
         if(StrUtil.isNotBlank(sn)){
             applicationContext.publishEvent(new DeviceActionEvt(clientId, sn, channel, Action.OFFLINE));
         }
@@ -104,6 +105,7 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
 //        if(StrUtil.isNotBlank(sn)){
 //            applicationContext.publishEvent(new DeviceActionEvt(clientId, sn, ctx.channel(), Action.OFFLINE));
 //        }
+        log.info("channel[{}]断开", ctx.channel().id());
         closeProcess(ctx.channel());
         super.channelInactive(ctx);
     }

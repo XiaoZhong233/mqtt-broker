@@ -9,6 +9,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.AttributeKey;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -24,8 +25,7 @@ public class IdleReadStateHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if(evt instanceof IdleStateEvent){
-            IdleStateEvent event = (IdleStateEvent) evt;
+        if(evt instanceof IdleStateEvent event){
             if(event.state() == IdleState.ALL_IDLE){
                 Channel channel = ctx.channel();
                 String clientId = (String) channel.attr(AttributeKey.valueOf("clientId")).get();

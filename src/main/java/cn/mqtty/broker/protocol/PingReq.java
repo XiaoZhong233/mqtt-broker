@@ -10,6 +10,8 @@ import cn.mqtty.common.session.ISessionStoreService;
 import cn.mqtty.common.session.SessionStore;
 import cn.mqtty.service.impl.MqttLoggerService;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelId;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.mqtt.*;
@@ -52,7 +54,7 @@ public class PingReq {
                 sessionStoreService.expire(clientId, sessionStore.getExpire());
                 MqttMessage pingRespMessage = MqttMessageFactory.newMessage(
                         new MqttFixedHeader(MqttMessageType.PINGRESP, false, MqttQoS.AT_MOST_ONCE, false, 0), null, null);
-                log.info("PINGREQ - clientId: {}", clientId);
+//                log.info("PINGREQ - clientId: {}", clientId);
                 channel.writeAndFlush(pingRespMessage);
             }
         }

@@ -168,7 +168,7 @@ public class Connect {
                 new MqttFixedHeader(MqttMessageType.CONNACK, false, MqttQoS.AT_MOST_ONCE, false, 0),
                 new MqttConnAckVariableHeader(MqttConnectReturnCode.CONNECTION_ACCEPTED, sessionPresent), null);
         channel.writeAndFlush(okResp);
-        loggerService.info("CONNECT - clientId: {}, cleanSession: {}", msg.payload().clientIdentifier(), msg.variableHeader().isCleanSession());
+        loggerService.info("CONNECT - channelId:{} clientId: {}, cleanSession: {}", channel.id(), msg.payload().clientIdentifier(), msg.variableHeader().isCleanSession());
         // 如果cleanSession为0, 需要重发同一clientId存储的未完成的QoS1和QoS2的DUP消息
         if (!msg.variableHeader().isCleanSession()) {
             List<DupPublishMessageStore> dupPublishMessageStoreList = dupPublishMessageStoreService.get(msg.payload().clientIdentifier());
