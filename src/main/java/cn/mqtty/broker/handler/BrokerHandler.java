@@ -70,13 +70,15 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
     private void closeProcess(Channel channel){
         String clientId = (String)channel.attr(AttributeKey.valueOf("clientId")).get();
         String sn = (String) channel.attr(AttributeKey.valueOf("sn")).get();
+        log.info("设备{}执行断开的一些处理", sn);
         SessionStore sessionStore = sessionStoreService.get(clientId);
         if (sessionStore != null && sessionStore.isCleanSession()) {
             subscribeStoreService.removeForClient(clientId);
             dupPublishMessageStoreService.removeByClient(clientId);
             dupPubRelMessageStoreService.removeByClient(clientId);
+            log.info("设备{}删除订阅缓存、发布缓存");
         }
-        mqttLoggerService.info("DISCONNECT - clientId: {}, sn:{}, cleanSession: {}", clientId, sn,
+        mqttLoggerService.info("断开 - clientId: {}, sn:{}, cleanSession: {}", clientId, sn,
                 sessionStore!=null?sessionStore.isCleanSession():"null");
         sessionStoreService.remove(clientId);
         mqttLoggerService.logInactive(clientId, channel.id().toString());

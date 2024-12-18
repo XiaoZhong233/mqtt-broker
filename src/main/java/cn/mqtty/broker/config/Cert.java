@@ -5,20 +5,35 @@ import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 //密钥生成参考：https://www.cnblogs.com/exmyth/p/14808872.html
 @Slf4j
+@Component
 public class Cert {
 
-    private static final String caCertFile = "cert/server/ca.crt";
+    @Autowired
+    private MqttConfig mqttConfig;
 
-    private static final String serverCertFile = "cert/server/server.crt";
+    private static String caCertFile;
 
-    private static final String keyFile = "cert/server/pkcs8_server.key";
+    private static String serverCertFile;
+
+    private static String keyFile;
+
+    @PostConstruct
+    public void init() {
+        caCertFile = mqttConfig.getCaCertFile();
+        serverCertFile = mqttConfig.getServerCertFile();
+        keyFile = mqttConfig.getKeyFile();
+    }
 
     public static SslContext build() throws IOException {
         InputStream certInput = null;

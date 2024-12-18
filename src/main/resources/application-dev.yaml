@@ -11,6 +11,9 @@ mqtt:
   port: 1883
   enable_clean_session: true
   enable_ssl: false
+  caCertFile: cert/server/ca.crt
+  serverCertFile: cert/server/server.crt
+  keyFile: cert/server/pkcs8_server.key
 
 spring:
   data:
