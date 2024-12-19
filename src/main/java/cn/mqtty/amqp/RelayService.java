@@ -20,30 +20,34 @@ public class RelayService {
     BrokerProperties brokerProperties;
     RocketMqConfig rocketMqConfig;
 
+    final static String ROCKET_ACTION_TOPIC = "mqtt_relay";
+    final static String ROCKET_ACTION_TAG = "terminal";
+
     public void send(InternalMessage internalMessage) {
-        String processId = Lang.JdkTool.getProcessId("0");
+//        String processId = Lang.JdkTool.getProcessId("0");
         //broker唯一标识 mqttwk.broker.id
-        internalMessage.setBrokerId(brokerProperties.getId());
-        internalMessage.setProcessId(processId);
+//        internalMessage.setBrokerId(brokerProperties.getId());
+//        internalMessage.setProcessId(processId);
         if(brokerProperties.isAmqp_enable()){
-            Message msg = new Message(rocketMqConfig.getRelayTopic(),
-                    internalMessage.getTopic(),
+            Message msg = new Message(ROCKET_ACTION_TOPIC,
+                    ROCKET_ACTION_TAG,
                     JSON.toJSONString(internalMessage).getBytes());
             try {
-                producer.send(msg, new SendCallback() {
-                    @Override
-                    public void onSuccess(SendResult sendResult) {
-                        log.info("Relay msg-[id:{}, tag:{}, sn:{}] success, status:{}, offset:{}",
-                                sendResult.getMsgId(), internalMessage.getTopic(), internalMessage.getClientId(),
-                                sendResult.getSendStatus(), sendResult.getQueueOffset());
-                    }
-
-                    @Override
-                    public void onException(Throwable throwable) {
-                        log.error("Relay msg-[tag:{},sn:{}] error, ", internalMessage.getTopic(), internalMessage.getClientId(),
-                                throwable);
-                    }
-                });
+                producer.sendOneway(msg);
+//                producer.send(msg, new SendCallback() {
+//                    @Override
+//                    public void onSuccess(SendResult sendResult) {
+//                        log.info("Relay msg-[id:{}, tag:{}, sn:{}] success, status:{}, offset:{}",
+//                                sendResult.getMsgId(), internalMessage.getTopic(), internalMessage.getClientId(),
+//                                sendResult.getSendStatus(), sendResult.getQueueOffset());
+//                    }
+//
+//                    @Override
+//                    public void onException(Throwable throwable) {
+//                        log.error("Relay msg-[tag:{},sn:{}] error, ", internalMessage.getTopic(), internalMessage.getClientId(),
+//                                throwable);
+//                    }
+//                });
             }catch (Exception e){
                 log.error("Rocket MQ connect loss...", e);
             }

@@ -95,9 +95,9 @@ public class Publish {
             }
         }
         String topicName = msg.variableHeader().topicName();
+        String sn = "Unknown";
         if(!topicName.startsWith("$action/operation")){
             Object o = channel.attr(AttributeKey.valueOf("sn")).get();
-            String sn = "Unknown";
             if(clientId.startsWith("dev-reg-service")){
                 sn = "平台";
             }
@@ -111,10 +111,12 @@ public class Publish {
         if (msg.fixedHeader().qosLevel() == MqttQoS.AT_MOST_ONCE) {
             byte[] messageBytes = new byte[msg.payload().readableBytes()];
             msg.payload().getBytes(msg.payload().readerIndex(), messageBytes);
-            InternalMessage internalMessage = new InternalMessage().setTopic(msg.variableHeader().topicName())
-                    .setMqttQoS(msg.fixedHeader().qosLevel().value()).setMessageBytes(messageBytes)
-                    .setDup(false).setRetain(false).setClientId(clientId);
-            relayService.send(internalMessage);
+            InternalMessage internalMessage = new InternalMessage(sn, clientId, topicName, msg.fixedHeader().qosLevel().value()
+            , messageBytes);
+            //二进制报文通过MQ转发
+            if(topicName.startsWith("$remote/client2server")){
+                relayService.send(internalMessage);
+            }
 //            internalCommunication.internalSend(internalMessage);
             this.sendPublishMessage(msg.variableHeader().topicName(), msg.fixedHeader().qosLevel(), messageBytes, false, false);
         }
@@ -122,10 +124,6 @@ public class Publish {
         if (msg.fixedHeader().qosLevel() == MqttQoS.AT_LEAST_ONCE) {
             byte[] messageBytes = new byte[msg.payload().readableBytes()];
             msg.payload().getBytes(msg.payload().readerIndex(), messageBytes);
-            InternalMessage internalMessage = new InternalMessage().setTopic(msg.variableHeader().topicName())
-                    .setMqttQoS(msg.fixedHeader().qosLevel().value()).setMessageBytes(messageBytes)
-                    .setDup(false).setRetain(false).setClientId(clientId);
-            relayService.send(internalMessage);
             //特殊处理登录报文
             if(topicName.startsWith("$action/operation")){
                 try {
@@ -151,11 +149,6 @@ public class Publish {
         if (msg.fixedHeader().qosLevel() == MqttQoS.EXACTLY_ONCE) {
             byte[] messageBytes = new byte[msg.payload().readableBytes()];
             msg.payload().getBytes(msg.payload().readerIndex(), messageBytes);
-            InternalMessage internalMessage = new InternalMessage().setTopic(msg.variableHeader().topicName())
-                    .setMqttQoS(msg.fixedHeader().qosLevel().value()).setMessageBytes(messageBytes)
-                    .setDup(false).setRetain(false).setClientId(clientId);
-            relayService.send(internalMessage);
-//            internalCommunication.internalSend(internalMessage);
             this.sendPublishMessage(msg.variableHeader().topicName(), msg.fixedHeader().qosLevel(), messageBytes, false, false);
             this.sendPubRecMessage(channel, msg.variableHeader().packetId());
         }
