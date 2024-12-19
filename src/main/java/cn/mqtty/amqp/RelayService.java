@@ -22,6 +22,7 @@ public class RelayService {
 
     final static String ROCKET_ACTION_TOPIC = "mqtt_relay";
     final static String ROCKET_ACTION_TAG = "terminal";
+    final static String ROCKET_LOG_TAG = "log";
 
     public void send(InternalMessage internalMessage) {
 //        String processId = Lang.JdkTool.getProcessId("0");
@@ -29,27 +30,25 @@ public class RelayService {
 //        internalMessage.setBrokerId(brokerProperties.getId());
 //        internalMessage.setProcessId(processId);
         if(brokerProperties.isAmqp_enable()){
-            Message msg = new Message(ROCKET_ACTION_TOPIC,
-                    ROCKET_ACTION_TAG,
-                    JSON.toJSONString(internalMessage).getBytes());
-            try {
-                producer.sendOneway(msg);
-//                producer.send(msg, new SendCallback() {
-//                    @Override
-//                    public void onSuccess(SendResult sendResult) {
-//                        log.info("Relay msg-[id:{}, tag:{}, sn:{}] success, status:{}, offset:{}",
-//                                sendResult.getMsgId(), internalMessage.getTopic(), internalMessage.getClientId(),
-//                                sendResult.getSendStatus(), sendResult.getQueueOffset());
-//                    }
-//
-//                    @Override
-//                    public void onException(Throwable throwable) {
-//                        log.error("Relay msg-[tag:{},sn:{}] error, ", internalMessage.getTopic(), internalMessage.getClientId(),
-//                                throwable);
-//                    }
-//                });
-            }catch (Exception e){
-                log.error("Rocket MQ connect loss...", e);
+            if(internalMessage.getTopic().startsWith("$remote/client2server")){
+                Message msg = new Message(ROCKET_ACTION_TOPIC,
+                        ROCKET_ACTION_TAG,
+                        JSON.toJSONString(internalMessage).getBytes());
+                try {
+                    producer.sendOneway(msg);
+                }catch (Exception e){
+                    log.error("Rocket MQ connect loss...", e);
+                }
+            }
+            if(internalMessage.getTopic().startsWith("$log/operation")){
+                Message msg = new Message(ROCKET_ACTION_TOPIC,
+                        ROCKET_LOG_TAG,
+                        JSON.toJSONString(internalMessage).getBytes());
+                try {
+                    producer.sendOneway(msg);
+                }catch (Exception e){
+                    log.error("Rocket MQ connect loss...", e);
+                }
             }
         }
     }

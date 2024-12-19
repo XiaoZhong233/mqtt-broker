@@ -114,7 +114,7 @@ public class Publish {
             InternalMessage internalMessage = new InternalMessage(sn, clientId, topicName, msg.fixedHeader().qosLevel().value()
             , messageBytes);
             //二进制报文通过MQ转发
-            if(topicName.startsWith("$remote/client2server")){
+            if(topicName.startsWith("$remote/client2server")|| topicName.startsWith("$log/operation")){
                 relayService.send(internalMessage);
             }
 //            internalCommunication.internalSend(internalMessage);
