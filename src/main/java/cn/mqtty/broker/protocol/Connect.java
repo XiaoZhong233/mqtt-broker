@@ -6,6 +6,7 @@ package cn.mqtty.broker.protocol;
 
 import cn.hutool.core.util.StrUtil;
 import cn.mqtty.broker.config.BrokerProperties;
+import cn.mqtty.broker.handler.enums.SslStatus;
 import cn.mqtty.common.auth.IAuthService;
 import cn.mqtty.common.message.DupPubRelMessageStore;
 import cn.mqtty.common.message.DupPublishMessageStore;
@@ -29,6 +30,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+
+import static cn.mqtty.broker.handler.OptionalSslHandler.SSL_STATUS;
 
 /**
  * CONNECT连接处理
@@ -104,7 +107,8 @@ public class Connect {
             channel.close();
             return;
         }
-        if (brokerProperties.isMqttPasswordMust()) {
+        SslStatus sslStatus = channel.attr(SSL_STATUS).get();
+        if (brokerProperties.isMqttPasswordMust() && sslStatus != SslStatus.ENABLED) {
             // 用户名和密码验证, 这里要求客户端连接时必须提供用户名和密码, 不管是否设置用户名标志和密码标志为1, 此处没有参考标准协议实现
             String username = msg.payload().userName();
             String password = msg.payload().passwordInBytes() == null ? null : new String(msg.payload().passwordInBytes(), CharsetUtil.UTF_8);

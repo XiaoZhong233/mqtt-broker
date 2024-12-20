@@ -5,6 +5,7 @@ import cn.mqtty.broker.config.BrokerProperties;
 import cn.mqtty.broker.config.Cert;
 import cn.mqtty.broker.handler.BrokerHandler;
 import cn.mqtty.broker.handler.IdleReadStateHandler;
+import cn.mqtty.broker.handler.OptionalSslHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.epoll.EpollEventLoopGroup;
@@ -93,12 +94,14 @@ public class BrokerServer {
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
                         ChannelPipeline channelPipeline = socketChannel.pipeline();
                         // Netty提供的SSL处理
-                        if (brokerProperties.isSslEnabled()) {
-                            SSLEngine sslEngine = sslContext.newEngine(socketChannel.alloc());
-                            sslEngine.setUseClientMode(false);
-                            sslEngine.setNeedClientAuth(true);
-                            channelPipeline.addLast("ssl", new SslHandler(sslEngine));
-                        }
+//                        if (brokerProperties.isSslEnabled()) {
+//                            SSLEngine sslEngine = sslContext.newEngine(socketChannel.alloc());
+//                            sslEngine.setUseClientMode(false);
+//                            sslEngine.setNeedClientAuth(true);
+//                            channelPipeline.addLast("ssl", new SslHandler(sslEngine));
+//                        }
+                        channelPipeline.addLast("optionalSSL", new OptionalSslHandler(sslContext));
+
                         // Netty提供的心跳检测
                         socketChannel.pipeline().addLast("idleStateHandler", new IdleStateHandler(0,0,
                                         brokerProperties.getKeepAlive(), TimeUnit.SECONDS))

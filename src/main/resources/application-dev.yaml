@@ -11,9 +11,9 @@ mqtt:
   port: 1883
   enable_clean_session: true
   enable_ssl: false
-  caCertFile: cert/ca.crt
-  serverCertFile: cert/server.crt
-  keyFile: cert/pkcs8_server.key
+  caCertFile: cert/server/ca.crt
+  serverCertFile: cert/server/server.crt
+  keyFile: cert/server/pkcs8_server.key
 
 spring:
   data:
@@ -51,7 +51,7 @@ mqttwk:
     websocket-port: 9995  # WebSocket端口号, 默认9995
     websocket-enabled: false  # WebSocket是否启用
     websocket-path: /mqtt  # WebSocket访问路径, 默认/mqtt
-    mqttPasswordMust: false
+    mqttPasswordMust: true
     ssl-enabled: true  # SSL是否启用
     keep-alive: 120  # 心跳时间(秒), 默认60秒
     session-timeout: 120

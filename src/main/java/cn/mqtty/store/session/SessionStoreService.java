@@ -78,6 +78,9 @@ public class SessionStoreService implements ISessionStoreService {
             }
         }else {
             NutMap nutMap = nutMapCache.get(CACHE_PRE + clientId);
+            if(nutMap==null){
+                return null;
+            }
             return StoreUtil.mapTransToPublishMsgBeta(nutMap);
         }
         return null;
