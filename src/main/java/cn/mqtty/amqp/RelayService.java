@@ -30,6 +30,8 @@ public class RelayService {
 //        internalMessage.setBrokerId(brokerProperties.getId());
 //        internalMessage.setProcessId(processId);
         if(brokerProperties.isAmqp_enable()){
+            log.info("设备{}AMPQ转发数据：topic:{}, 长度:{}", internalMessage.getSn(), internalMessage.getTopic(),
+                    internalMessage.getMessageBytes().length);
             if(internalMessage.getTopic().startsWith("$remote/client2server")){
                 Message msg = new Message(ROCKET_ACTION_TOPIC,
                         ROCKET_ACTION_TAG,
