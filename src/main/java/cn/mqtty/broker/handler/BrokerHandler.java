@@ -177,14 +177,18 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        Channel channel = ctx.channel();
+        String clientId = (String)channel.attr(AttributeKey.valueOf("clientId")).get();
+        String sn = (String) channel.attr(AttributeKey.valueOf("sn")).get();
         if (cause instanceof IOException) {
             // 远程主机强迫关闭了一个现有的连接的异常
-            log.error("IO异常：远程主机强迫关闭了一个现有的连接的异常.{}",cause.getMessage(),cause);
+            log.error("IO异常：远程主机{}强迫关闭了一个现有的连接的异常\n sn:{}, clientId:{}.{}", ctx.channel().id(),
+                    sn, clientId,cause.getMessage(),cause);
 //            protocolProcess.disConnect().processDisConnect(ctx.channel());
             closeProcess(ctx.channel());
             ctx.close();
         } else {
-            log.error("异常:{}",cause.getMessage(), cause);
+            log.error("异常:{}; sn:{}, clientId:{}",cause.getMessage(), sn, clientId, cause);
             super.exceptionCaught(ctx, cause);
         }
     }
