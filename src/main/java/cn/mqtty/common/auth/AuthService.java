@@ -25,7 +25,7 @@ public class AuthService implements IAuthService {
 		if(brokerProperties.isMqttPasswordMust()){
 			if (StrUtil.isBlank(brokerProperties.getUsername()) || StrUtil.isBlank(username)) return false;
 			if (StrUtil.isBlank(brokerProperties.getPassword()) || StrUtil.isBlank(password)) return false;
-			return username.equals(brokerProperties.getUsername()) && password.equals(brokerProperties.getUsername());
+			return username.equals(brokerProperties.getUsername()) && password.equals(brokerProperties.getPassword());
 		}
 		return true;
 	}
