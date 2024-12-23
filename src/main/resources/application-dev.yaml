@@ -55,7 +55,7 @@ mqttwk:
     password: test
 #    cluster-on: false  # 是否开启集群模式, 默认false
     websocket-port: 9995  # WebSocket端口号, 默认9995
-    websocket-enabled: false  # WebSocket是否启用
+    websocket-enabled: true  # WebSocket是否启用
     websocket-path: /mqtt  # WebSocket访问路径, 默认/mqtt
     mqttPasswordMust: true
     ssl-enabled: true  # SSL是否启用
@@ -67,4 +67,4 @@ mqttwk:
     bossGroup-nThreads: 4  # bossGroup线程数, 默认4
     workerGroup-nThreads: 20  # workerGroup线程数, 默认20
     amqp-enable: true #是否开启消息队列转发, 当前实现为rocketMQ
-    session-storage-type: caffeine # 存储类型: caffeine 或 redis，默认是 caffeine
+    session-storage-type: redis # 存储类型: caffeine 或 redis，默认是 caffeine
