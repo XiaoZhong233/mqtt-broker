@@ -15,7 +15,7 @@ public class BrokerProperties {
     private String password; //密码
 //    private boolean clusterEnabled = false; // 是否开启集群模式
     private int websocketPort = 9995; // WebSocket端口号, 默认9995
-    private boolean websocketEnabled = false; // WebSocket是否启用
+    private boolean websocketEnabled = true; // WebSocket是否启用
     private String websocketPath = "/mqtt"; // WebSocket访问路径, 默认/mqtt
     private boolean sslEnabled = true; // SSL是否启用
 //    private String sslPassword; // SSL密钥文件密码

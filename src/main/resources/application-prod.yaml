@@ -49,7 +49,7 @@ mqttwk:
     password: 8v$JrT!dQ9@LmX3
     #    cluster-on: false  # 是否开启集群模式, 默认false
     websocket-port: 9995  # WebSocket端口号, 默认9995
-    websocket-enabled: false  # WebSocket是否启用
+    websocket-enabled: true  # WebSocket是否启用
     websocket-path: /mqtt  # WebSocket访问路径, 默认/mqtt
     mqttPasswordMust: true
     ssl-enabled: true  # SSL是否启用

@@ -9,4 +9,5 @@ services:
       - ./log:/application/log
     ports:
       - "1883:1883"
+      - "9995:9995"
     restart: always
