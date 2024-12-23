@@ -116,6 +116,7 @@ public class Publish {
             //二进制报文通过MQ转发
             if(topicName.startsWith("$remote/client2server")|| topicName.startsWith("$log/operation")){
                 relayService.send(internalMessage);
+                return;
             }
 //            internalCommunication.internalSend(internalMessage);
             this.sendPublishMessage(msg.variableHeader().topicName(), msg.fixedHeader().qosLevel(), messageBytes, false, false);
