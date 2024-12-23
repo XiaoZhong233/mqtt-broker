@@ -51,8 +51,8 @@ mqttwk:
     id: mqttwk  # Broker唯一标识
 #    host: 127.0.0.1  # 服务启动的IP
     port: 1883  # 端口号, 默认8885
-    username: sinognss
-    password: sinognss
+    username: User_X7#B2rJ
+    password: 8v$JrT!dQ9@LmX3
 #    cluster-on: false  # 是否开启集群模式, 默认false
     websocket-port: 9995  # WebSocket端口号, 默认9995
     websocket-enabled: true  # WebSocket是否启用
