@@ -7,6 +7,7 @@ import cn.mqtty.broker.handler.BrokerHandler;
 import cn.mqtty.broker.handler.IdleReadStateHandler;
 import cn.mqtty.broker.handler.OptionalSslHandler;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
@@ -113,7 +114,11 @@ public class BrokerServer {
                     }
                 })
                 .option(ChannelOption.SO_BACKLOG, brokerProperties.getSoBacklog())
-                .childOption(ChannelOption.SO_KEEPALIVE, brokerProperties.isSoKeepAlive());
+                .childOption(ChannelOption.SO_KEEPALIVE, brokerProperties.isSoKeepAlive())
+                .childOption(ChannelOption.SO_RCVBUF, 1024 * 1024) // 接收缓冲区大小
+                .childOption(ChannelOption.SO_SNDBUF, 1024 * 1024); // 发送缓冲区大小
+//                .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+//                .childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(512 * 1024, 1024 * 1024)); // 写缓冲区水位线
         if (Strings.isNotBlank(brokerProperties.getHost())) {
             channel = sb.bind(brokerProperties.getHost(), brokerProperties.getPort()).sync().channel();
         } else {
