@@ -189,6 +189,7 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
             ctx.close();
         } else {
             log.error("异常:{}; sn:{}, clientId:{}",cause.getMessage(), sn, clientId, cause);
+            cause.printStackTrace();
             super.exceptionCaught(ctx, cause);
         }
     }
