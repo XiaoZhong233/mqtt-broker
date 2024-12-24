@@ -5,6 +5,7 @@ import cn.mqtty.broker.config.BrokerProperties;
 import cn.mqtty.broker.config.Cert;
 import cn.mqtty.broker.handler.BrokerHandler;
 import cn.mqtty.broker.handler.IdleReadStateHandler;
+import cn.mqtty.broker.handler.MqttWsCustomHandler;
 import cn.mqtty.broker.handler.OptionalSslHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -139,12 +140,7 @@ public class BrokerServer {
                         // Netty提供的心跳检测
                         channelPipeline.addFirst("idle", new IdleStateHandler(0, 0, brokerProperties.getKeepAlive()));
                         // Netty提供的SSL处理
-//                        if (brokerProperties.isSslEnabled()) {
-//                            SSLEngine sslEngine = sslContext.newEngine(socketChannel.alloc());
-//                            sslEngine.setUseClientMode(false);
-//                            sslEngine.setNeedClientAuth(true);
-//                            channelPipeline.addLast("ssl", new SslHandler(sslEngine));
-//                        }
+//                        channelPipeline.addLast("optionalSSL", new OptionalSslHandler(sslContext));
                         // 将请求和应答消息编码或解码为HTTP消息
                         channelPipeline.addLast("http-codec", new HttpServerCodec());
                         // 将HTTP消息的多个部分合成一条完整的HTTP消息
@@ -155,6 +151,7 @@ public class BrokerServer {
                         channelPipeline.addLast("mqttWebSocket", new MqttWebSocketCodec());
                         channelPipeline.addLast("decoder", new MqttDecoder());
                         channelPipeline.addLast("encoder", MqttEncoder.INSTANCE);
+                        channelPipeline.addLast("mqtt-over-websocket-custom-layer",  new MqttWsCustomHandler());
                         channelPipeline.addLast("broker", brokerHandler);
                     }
                 })

@@ -6,6 +6,7 @@ package cn.mqtty.broker.protocol;
 
 import cn.hutool.core.util.StrUtil;
 import cn.mqtty.broker.config.BrokerProperties;
+import cn.mqtty.broker.handler.enums.ProtocolType;
 import cn.mqtty.broker.handler.enums.SslStatus;
 import cn.mqtty.common.auth.IAuthService;
 import cn.mqtty.common.message.DupPubRelMessageStore;
@@ -25,18 +26,21 @@ import io.netty.handler.codec.mqtt.*;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
+import static cn.mqtty.broker.handler.OptionalSslHandler.PROTOCOL_TYPE_ATTRIBUTE_KEY;
 import static cn.mqtty.broker.handler.OptionalSslHandler.SSL_STATUS;
 
 /**
  * CONNECT连接处理
  */
 @Component
+@Slf4j
 public class Connect {
 
 //    private static final Logger LOGGER = LoggerFactory.getLogger(Connect.class);
@@ -108,17 +112,21 @@ public class Connect {
             return;
         }
         SslStatus sslStatus = channel.attr(SSL_STATUS).get();
-        if (brokerProperties.isMqttPasswordMust() && sslStatus != SslStatus.ENABLED) {
+        ProtocolType protocolType = channel.attr(PROTOCOL_TYPE_ATTRIBUTE_KEY).get();
+        if (protocolType == ProtocolType.MQTT || (brokerProperties.isMqttPasswordMust() && sslStatus != SslStatus.ENABLED)) {
             // 用户名和密码验证, 这里要求客户端连接时必须提供用户名和密码, 不管是否设置用户名标志和密码标志为1, 此处没有参考标准协议实现
             String username = msg.payload().userName();
             String password = msg.payload().passwordInBytes() == null ? null : new String(msg.payload().passwordInBytes(), CharsetUtil.UTF_8);
-            if (!authService.checkValid(username, password)) {
+            if (!authService.checkValid(username, password, protocolType)) {
                 MqttConnAckMessage connAckMessage = (MqttConnAckMessage) MqttMessageFactory.newMessage(
                         new MqttFixedHeader(MqttMessageType.CONNACK, false, MqttQoS.AT_MOST_ONCE, false, 0),
                         new MqttConnAckVariableHeader(MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD, false), null);
                 channel.writeAndFlush(connAckMessage);
                 channel.close();
                 return;
+            }
+            if(protocolType == ProtocolType.WS){
+                log.info("WS客户端连接; channel:{}", channel.id());
             }
         }
         // 如果会话中已存储这个新连接的clientId, 就关闭之前该clientId的连接
