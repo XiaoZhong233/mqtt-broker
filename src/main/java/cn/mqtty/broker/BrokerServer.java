@@ -115,11 +115,14 @@ public class BrokerServer {
                     }
                 })
                 .option(ChannelOption.SO_BACKLOG, brokerProperties.getSoBacklog())
+                .option(ChannelOption.SO_RCVBUF, 10 * 1024 * 1024)  // 设置接收缓冲区大小为 10MB
+                .option(ChannelOption.SO_SNDBUF, 10 * 1024 * 1024)  // 设置发送缓冲区大小为 10MB
+                .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+                .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(512 * 1024, 1024 * 1024))
                 .childOption(ChannelOption.SO_KEEPALIVE, brokerProperties.isSoKeepAlive())
-                .childOption(ChannelOption.SO_RCVBUF, 1024 * 1024) // 接收缓冲区大小
-                .childOption(ChannelOption.SO_SNDBUF, 1024 * 1024); // 发送缓冲区大小
-//                .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-//                .childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(512 * 1024, 1024 * 1024)); // 写缓冲区水位线
+                .childOption(ChannelOption.SO_RCVBUF, 16 * 1024 * 1024)
+                .childOption(ChannelOption.SO_SNDBUF, 16 * 1024 * 1024)
+                .childOption(ChannelOption.TCP_NODELAY, true);
         if (Strings.isNotBlank(brokerProperties.getHost())) {
             channel = sb.bind(brokerProperties.getHost(), brokerProperties.getPort()).sync().channel();
         } else {
