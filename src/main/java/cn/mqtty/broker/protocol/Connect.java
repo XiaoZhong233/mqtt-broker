@@ -113,7 +113,7 @@ public class Connect {
         }
         SslStatus sslStatus = channel.attr(SSL_STATUS).get();
         ProtocolType protocolType = channel.attr(PROTOCOL_TYPE_ATTRIBUTE_KEY).get();
-        if (protocolType == ProtocolType.MQTT || (brokerProperties.isMqttPasswordMust() && sslStatus != SslStatus.ENABLED)) {
+        if (protocolType == ProtocolType.WS || (brokerProperties.isMqttPasswordMust() && sslStatus != SslStatus.ENABLED)) {
             // 用户名和密码验证, 这里要求客户端连接时必须提供用户名和密码, 不管是否设置用户名标志和密码标志为1, 此处没有参考标准协议实现
             String username = msg.payload().userName();
             String password = msg.payload().passwordInBytes() == null ? null : new String(msg.payload().passwordInBytes(), CharsetUtil.UTF_8);

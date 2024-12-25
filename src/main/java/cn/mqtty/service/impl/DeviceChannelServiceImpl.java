@@ -2,10 +2,12 @@ package cn.mqtty.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 
+import cn.mqtty.broker.handler.enums.ProtocolType;
 import cn.mqtty.service.DeviceChannelService;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
 import io.netty.channel.group.ChannelGroup;
@@ -17,6 +19,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static cn.mqtty.broker.handler.OptionalSslHandler.PROTOCOL_TYPE_ATTRIBUTE_KEY;
 
 
 @Slf4j
@@ -40,4 +44,9 @@ public class DeviceChannelServiceImpl implements DeviceChannelService {
         return channelSnMap.get(channelId);
     }
 
+    @Override
+    public boolean isWebsocketChannel(Channel channel) {
+        ProtocolType protocolType = channel.attr(PROTOCOL_TYPE_ATTRIBUTE_KEY).get();
+        return protocolType==ProtocolType.WS;
+    }
 }

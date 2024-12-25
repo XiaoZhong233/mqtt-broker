@@ -9,7 +9,10 @@ import cn.hutool.core.util.StrUtil;
 import cn.mqtty.broker.config.BrokerProperties;
 import cn.mqtty.broker.protocol.ProtocolProcess;
 import cn.mqtty.common.session.SessionStore;
+import cn.mqtty.common.subscribe.SubscribeStore;
+import cn.mqtty.service.DeviceChannelService;
 import cn.mqtty.service.evt.DeviceActionEvt;
+import cn.mqtty.service.evt.WsActionEvt;
 import cn.mqtty.service.evt.enums.Action;
 import cn.mqtty.service.impl.MqttLoggerService;
 import cn.mqtty.store.message.DupPubRelMessageStoreService;
@@ -19,8 +22,6 @@ import cn.mqtty.store.subscribe.SubscribeStoreService;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.mqtt.*;
-import io.netty.handler.timeout.IdleState;
-import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +30,12 @@ import org.springframework.stereotype.Component;
 
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 /**
  * MQTT消息处理
@@ -58,6 +64,8 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
     DupPubRelMessageStoreService dupPubRelMessageStoreService;
     @Autowired
     ApplicationContext applicationContext;
+    @Autowired
+    DeviceChannelService deviceChannelService;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -67,10 +75,69 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
         this.channelIdMap.put(brokerProperties.getId() + "_" + ctx.channel().id().asLongText(), ctx.channel().id());
     }
 
+    //websocket断开后要下发停止超级终端指令
+    private void sendStopCmdToDevice(String clientId, Set<String> topics){
+        applicationContext.publishEvent(new WsActionEvt(clientId, topics, Action.WS_NON_SUBS_TARGET_TOPIC));
+    }
+
+    /**
+     * 关闭 WebSocket 连接时，
+     * 检查该客户端订阅的特定主题（$remote/client2server 和 $log/operation 开头的主题）
+     * 并根据其他连接是否订阅这些主题来决定是否发送停止命令
+     */
+    private void closeWsProcess(Channel channel){
+        if(deviceChannelService.isWebsocketChannel(channel)){
+            String clientId = (String)channel.attr(AttributeKey.valueOf("clientId")).get();
+            log.info("客户端WS断开; clientId:{}", clientId);
+            Set<String> subscribedTopics = subscribeStoreService.getSubscribedTopics(clientId);
+            log.info("客户端{}订阅的Topic: {}", clientId,subscribedTopics);
+            Map<String, Boolean> collect = subscribedTopics.stream()
+                    .filter(s -> s.startsWith("$remote/client2server") || s.startsWith("$log/operation"))
+                    .collect(Collectors.toMap(topic -> topic, topic -> false));
+            //检查是否有其他ws连接订阅了终端报文 topic
+            for (String tp : collect.keySet()){
+                List<SubscribeStore> search = subscribeStoreService.searchSpecific(tp);
+                if(search ==null || search.isEmpty() || (search.size() == 1 && Objects.equals(search.get(0).getClientId(), clientId))){
+                    log.info("所有Channel均无订阅该Topic:{}", tp);
+                    collect.put(tp, true);
+                    continue;
+                }
+                boolean wsNonSubscribe = true;
+                // 检查订阅该 topic 的连接是否为 WebSocket 连接
+                for (SubscribeStore subscribeStore : search) {
+                    if (sessionStoreService.containsKey(subscribeStore.getClientId())) {
+                        SessionStore sessionStore = sessionStoreService.get(subscribeStore.getClientId());
+                        ChannelId channelId = channelIdMap.get(sessionStore.getBrokerId() + "_" + sessionStore.getChannelId());
+                        // 如果找到对应的 ChannelId，进一步检查是否是 WebSocket 连接
+                        if (channelId != null) {
+                            Channel cc = channelGroup.find(channelId);
+                            if (cc != null && deviceChannelService.isWebsocketChannel(cc)) {
+                                wsNonSubscribe = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if(wsNonSubscribe){
+                    log.info("所有Websocket Channel均无订阅该Topic:{}", tp);
+                    collect.put(tp, true);
+                }else {
+                    log.info("还有Websocket Channel订阅该topic:{}", tp);
+                }
+            }
+            Set<String> topicSet = collect.entrySet().stream().filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(Collectors.toSet());
+            if(!topicSet.isEmpty()){
+                sendStopCmdToDevice(clientId, topicSet);
+            }
+        }
+    }
+
     private void closeProcess(Channel channel){
         String clientId = (String)channel.attr(AttributeKey.valueOf("clientId")).get();
         String sn = (String) channel.attr(AttributeKey.valueOf("sn")).get();
         log.info("设备{}执行断开的一些处理", sn);
+        //ws关闭的处理
+        closeWsProcess(channel);
         SessionStore sessionStore = sessionStoreService.get(clientId);
         if (sessionStore != null && sessionStore.isCleanSession()) {
             subscribeStoreService.removeForClient(clientId);
@@ -78,8 +145,8 @@ public class BrokerHandler extends SimpleChannelInboundHandler<MqttMessage> {
             dupPubRelMessageStoreService.removeByClient(clientId);
             log.info("设备{}删除订阅缓存、发布缓存");
         }
-        mqttLoggerService.info("断开 - clientId: {}, sn:{}, cleanSession: {}", clientId, sn,
-                sessionStore!=null?sessionStore.isCleanSession():"null");
+//        mqttLoggerService.info("断开 - clientId: {}, sn:{}, cleanSession: {}", clientId, sn,
+//                sessionStore!=null?sessionStore.isCleanSession():"null");
         sessionStoreService.remove(clientId);
         mqttLoggerService.logInactive(clientId, channel.id().toString());
         this.channelGroup.remove(channel);
