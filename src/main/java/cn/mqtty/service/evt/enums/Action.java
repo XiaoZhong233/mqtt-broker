@@ -2,5 +2,6 @@ package cn.mqtty.service.evt.enums;
 
 public enum Action {
     ONLINE,
-    OFFLINE
+    OFFLINE,
+    WS_NON_SUBS_TARGET_TOPIC
 }

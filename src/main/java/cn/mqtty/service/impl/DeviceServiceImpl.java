@@ -53,7 +53,7 @@ public class DeviceServiceImpl implements DeviceService {
         MqttFixedHeader mqttFixedHeader = new MqttFixedHeader(
                 MqttMessageType.PUBLISH,  // 消息类型是PUBLISH
                 false,  // DUP flag, 如果是重新发送的消息可以设置为 true
-                MqttQoS.AT_MOST_ONCE,  // QoS 1
+                MqttQoS.AT_LEAST_ONCE,  // QoS 1
                 false,  // RETAIN flag, 是否保留消息
                 0  // 可变头部和负载的剩余长度（此时设置为 0, 会自动计算）
         );
@@ -92,7 +92,7 @@ public class DeviceServiceImpl implements DeviceService {
         MqttFixedHeader mqttFixedHeader = new MqttFixedHeader(
                 MqttMessageType.PUBLISH,  // 消息类型是PUBLISH
                 false,  // DUP flag, 如果是重新发送的消息可以设置为 true
-                MqttQoS.AT_MOST_ONCE,  // QoS 1
+                MqttQoS.AT_LEAST_ONCE,  // QoS 1
                 false,  // RETAIN flag, 是否保留消息
                 0  // 可变头部和负载的剩余长度（此时设置为 0, 会自动计算）
         );

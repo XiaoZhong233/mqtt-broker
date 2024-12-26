@@ -60,5 +60,5 @@ mqttwk:
     so-keep-alive: true  # 是否开启心跳保活机制, 默认开启
     bossGroup-nThreads: 4  # bossGroup线程数, 默认4
     workerGroup-nThreads: 20  # workerGroup线程数, 默认20
-    amqp-enable: true #是否开启消息队列转发, 当前实现为rocketMQ
+    amqp-enable: false #是否开启消息队列转发, 当前实现为rocketMQ
     session-storage-type: redis # 存储类型: caffeine 或 redis，默认是 caffeine

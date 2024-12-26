@@ -2,10 +2,12 @@ package cn.mqtty;
 
 import cn.mqtty.broker.BrokerServer;
 import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 @Component
+@Slf4j
 public class BrokerRunner implements CommandLineRunner {
 
     private final BrokerServer brokerServer;

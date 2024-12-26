@@ -14,9 +14,7 @@ import cn.mqtty.store.cache.SubscribeWildcardCache;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * 订阅存储服务
@@ -55,6 +53,16 @@ public class SubscribeStoreService implements ISubscribeStoreService {
     }
 
     @Override
+    public List<SubscribeStore> searchSpecific(String topic) {
+        List<SubscribeStore> subscribeStores = new ArrayList<SubscribeStore>();
+        List<SubscribeStore> list = subscribeNotWildcardCache.all(topic);
+        if (!list.isEmpty()) {
+            subscribeStores.addAll(list);
+        }
+        return subscribeStores;
+    }
+
+    @Override
     public List<SubscribeStore> search(String topic) {
         List<SubscribeStore> subscribeStores = new ArrayList<SubscribeStore>();
         List<SubscribeStore> list = subscribeNotWildcardCache.all(topic);
@@ -86,6 +94,32 @@ public class SubscribeStoreService implements ISubscribeStoreService {
             }
         });
         return subscribeStores;
+    }
+
+    /**
+     * 获取 clientId 所订阅的 topic 集合
+     *
+     * @param clientId 客户端ID
+     * @return 客户端订阅的 topic 集合
+     */
+    public Set<String> getSubscribedTopics(String clientId) {
+        Set<String> subscribedTopics = new HashSet<>();
+
+        // 遍历 subscribeNotWildcardCache 查找
+        subscribeNotWildcardCache.all().forEach((topicFilter, map) -> {
+            if (map.containsKey(clientId)) {
+                subscribedTopics.add(topicFilter);
+            }
+        });
+
+        // 遍历 subscribeWildcardCache 查找
+        subscribeWildcardCache.all().forEach((topicFilter, map) -> {
+            if (map.containsKey(clientId)) {
+                subscribedTopics.add(topicFilter);
+            }
+        });
+
+        return subscribedTopics;
     }
 
 }

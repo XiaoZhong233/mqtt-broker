@@ -1,4 +1,5 @@
 package cn.mqtty.broker.handler;
+import cn.mqtty.broker.handler.enums.ProtocolType;
 import cn.mqtty.broker.handler.enums.SslStatus;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -13,6 +14,7 @@ import java.util.List;
 public class OptionalSslHandler extends io.netty.handler.ssl.OptionalSslHandler {
 
     public static final AttributeKey<SslStatus> SSL_STATUS = AttributeKey.valueOf("SSL_STATUS");
+    public static final AttributeKey<ProtocolType> PROTOCOL_TYPE_ATTRIBUTE_KEY = AttributeKey.valueOf("PROTOCOL_TYPE");
 
     public OptionalSslHandler(SslContext sslContext) {
         super(sslContext);
@@ -22,6 +24,7 @@ public class OptionalSslHandler extends io.netty.handler.ssl.OptionalSslHandler 
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         super.handlerAdded(ctx);
         ctx.channel().attr(SSL_STATUS).set(null);
+        ctx.channel().attr(PROTOCOL_TYPE_ATTRIBUTE_KEY).set(ProtocolType.MQTT);
     }
 
 
